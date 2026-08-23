@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "ziapp.domain": {
+        "type": "Project"
+      }
+    }
+  }
+}

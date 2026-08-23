@@ -1,0 +1,11 @@
+@ZiApp.Api_HostAddress = http://localhost:5050
+
+GET {{ZiApp.Api_HostAddress}}/health/live
+Accept: application/json
+
+###
+
+GET {{ZiApp.Api_HostAddress}}/health
+Accept: application/json
+
+###
