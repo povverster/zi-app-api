@@ -10,6 +10,7 @@ ASP.NET Core backend for the Zorjd Investments application.
 - Repository-local EF Core migration tooling
 - Unit tests plus PostgreSQL integration tests
 - Multi-stage, non-root Docker image
+- ASP.NET Core Identity with admin-controlled account provisioning
 
 ## Repository layout
 
@@ -56,6 +57,12 @@ Useful endpoints:
 - `GET /health/live` confirms that the API process is running
 - `GET /health` confirms that PostgreSQL is reachable
 - `GET /swagger` opens interactive API documentation
+
+## Authentication
+
+Accounts are created only by a super administrator; there is no public registration
+endpoint. See [the authentication guide](docs/security/authentication.md) for the
+first-admin setup, cookie and CSRF flow, and security defaults.
 
 ## Tests
 

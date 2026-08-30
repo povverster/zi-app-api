@@ -11,7 +11,7 @@ public sealed class InvestmentLedgerEntityTests
     public void UserAccountNormalizesEmailAndStartsActive()
     {
         var account = new UserAccount(
-            Guid.NewGuid(),
+            Guid.CreateVersion7(),
             "  Investor@Example.com ",
             "Investor",
             AccountRole.User,
@@ -27,10 +27,10 @@ public sealed class InvestmentLedgerEntityTests
     public void InvestmentTransactionRejectsNegativeFee()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => new InvestmentTransaction(
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            Guid.NewGuid(),
+            Guid.CreateVersion7(),
+            Guid.CreateVersion7(),
+            Guid.CreateVersion7(),
+            Guid.CreateVersion7(),
             TradeSide.Buy,
             DateTimeOffset.UtcNow,
             1m,
@@ -55,10 +55,10 @@ public sealed class InvestmentLedgerEntityTests
             41m);
 
         var snapshot = new TaxLotMatchSnapshot(
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            Guid.NewGuid(),
+            Guid.CreateVersion7(),
+            Guid.CreateVersion7(),
+            Guid.CreateVersion7(),
+            Guid.CreateVersion7(),
             calculation);
 
         Assert.Equal(17m, snapshot.ProfitUsd);

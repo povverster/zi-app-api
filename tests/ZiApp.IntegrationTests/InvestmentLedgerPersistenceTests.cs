@@ -26,11 +26,11 @@ public sealed class InvestmentLedgerPersistenceTests(ApiFixture fixture) : IClas
     [Fact]
     public async Task AccountPortfolioAndTradeRoundTripThroughPostgreSql()
     {
-        Guid accountId = Guid.NewGuid();
-        Guid portfolioId = Guid.NewGuid();
-        Guid instrumentId = Guid.NewGuid();
-        Guid rateId = Guid.NewGuid();
-        Guid transactionId = Guid.NewGuid();
+        Guid accountId = Guid.CreateVersion7();
+        Guid portfolioId = Guid.CreateVersion7();
+        Guid instrumentId = Guid.CreateVersion7();
+        Guid rateId = Guid.CreateVersion7();
+        Guid transactionId = Guid.CreateVersion7();
         DateTimeOffset now = DateTimeOffset.UtcNow;
 
         var account = new UserAccount(

@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 using ZiApp.Domain.Accounts;
@@ -6,11 +8,12 @@ using ZiApp.Domain.Instruments;
 using ZiApp.Domain.Portfolios;
 using ZiApp.Domain.TaxReports;
 using ZiApp.Domain.Transactions;
+using ZiApp.Infrastructure.Identity;
 
 namespace ZiApp.Infrastructure.Persistence;
 
 public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-    : DbContext(options)
+    : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>(options)
 {
     public DbSet<UserAccount> UserAccounts => Set<UserAccount>();
 
@@ -28,11 +31,12 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
     public DbSet<TaxLotMatchSnapshot> TaxLotMatchSnapshots => Set<TaxLotMatchSnapshot>();
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    protected override void OnModelCreating(ModelBuilder builder)
     {
-        ArgumentNullException.ThrowIfNull(modelBuilder);
+        ArgumentNullException.ThrowIfNull(builder);
 
-        base.OnModelCreating(modelBuilder);
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+        base.OnModelCreating(builder);
+        IdentityModelConfiguration.Configure(builder);
+        builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
     }
 }

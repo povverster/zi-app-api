@@ -10,4 +10,12 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Folder Include="Accounts\" />
+    <Folder Include="Security\" />
+    <Compile Update="**\*.cs">
+      <Visible>true</Visible>
+    </Compile>
+  </ItemGroup>
+
 </Project>
