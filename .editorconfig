@@ -32,6 +32,10 @@ tab_width = 4
 # New line preferences
 insert_final_newline = false
 
+[**/Persistence/Migrations/*.cs]
+# EF Core generates inline arrays for composite indexes and foreign keys.
+dotnet_diagnostic.CA1861.severity = none
+
 #### .NET Coding Conventions ####
 [*.{cs,vb}]
 

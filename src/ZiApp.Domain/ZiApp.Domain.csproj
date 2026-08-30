@@ -7,8 +7,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Folder Include="Accounts\" />
+    <Folder Include="ExchangeRates\" />
+    <Folder Include="Instruments\" />
+    <Folder Include="Portfolios\" />
     <Folder Include="Tax\" />
-    <Compile Update="Tax\**\*.cs">
+    <Folder Include="TaxReports\" />
+    <Folder Include="Transactions\" />
+    <Compile Update="**\*.cs">
       <Visible>true</Visible>
     </Compile>
   </ItemGroup>
