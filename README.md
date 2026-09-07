@@ -64,6 +64,14 @@ Accounts are created only by a super administrator; there is no public registrat
 endpoint. See [the authentication guide](docs/security/authentication.md) for the
 first-admin setup, cookie and CSRF flow, and security defaults.
 
+## Portfolios
+
+Signed-in users can create, list, retrieve, rename, archive, and restore their own
+portfolios. These endpoints include CSRF protection and account ownership checks.
+See the [portfolio guide](docs/portfolios/portfolio-management.md) for the contract,
+archive policy, and acceptance checks. This stage uses the existing migrations;
+there is no new database migration to apply for portfolio management.
+
 ## Tests
 
 ```powershell

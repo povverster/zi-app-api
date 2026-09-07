@@ -64,6 +64,9 @@ Keep all three as separate Git repositories.
   another account cannot read or mutate the resource.
 - Use `decimal` for quantities, fees, amounts, and rates. Do not round intermediate
   calculations or overwrite stored source values with display-rounded values.
+- Portfolio names are trimmed and case-sensitive, unique per owner including
+  archived portfolios. Creation uses USD. Prefer reversible archive/restore;
+  there is no hard-delete endpoint. Future trade entry must reject archived portfolios.
 - FIFO is mandatory. Order by broker execution time and the documented stable-ID
   tie-breaker; UUID generation time does not replace trade execution time.
 - Convert purchase amounts/fees at the purchase-date rate and sale amounts/fees at
@@ -77,16 +80,18 @@ Keep all three as separate Git repositories.
 - [Spreadsheet-derived calculation specification](docs/domain/tax-calculation-specification.md)
 - [Ledger model and database invariants](docs/domain/investment-ledger-model.md)
 - [Authentication and first-admin setup](docs/security/authentication.md)
+- [Portfolio API contract and acceptance checks](docs/portfolios/portfolio-management.md)
 - [Local setup](README.md) and [CI commands](.github/workflows/ci.yml)
 
-The ledger document describes the initial persistence stage and still lists
-authentication as deferred. Authentication is now implemented; use its dedicated
-guide and current code for that status. Unresolved tax/rate rules in the
+Authentication and portfolio management are implemented. Use their dedicated
+guides and current code for the HTTP contracts. Unresolved tax/rate rules in the
 calculation specification remain unresolved.
 
 ## Development progress
 
-Baseline inspected on 2026-09-05, at commit `dcc53ad`.
+Status updated on 2026-09-07 after the portfolio management stage. Implementation
+started from commit `23a3a2e`; the stage's verification is recorded in the
+[portfolio guide](docs/portfolios/portfolio-management.md).
 
 - [x] Backend foundation: .NET 10 solution and layer references, Swagger/OpenAPI,
   health endpoints, PostgreSQL/EF Core, local migration tooling, Dockerfile,
@@ -96,24 +101,28 @@ Baseline inspected on 2026-09-05, at commit `dcc53ad`.
   This is a domain calculator, not a finished tax-report feature.
 - [x] Ledger persistence foundation: accounts, portfolios, instruments, trades,
   rates, splits, calculation runs, match snapshots, constraints, and persistence tests.
-  These models do not yet provide portfolio/trade HTTP workflows.
+  Portfolio HTTP workflows are now available; trade-entry workflows remain pending.
 - [x] Authentication: Identity credentials linked to domain accounts, login/logout,
   current-account and CSRF endpoints, super-admin account creation, first-admin
   bootstrap, cookie settings, password/lockout policy, and integration tests.
 - [x] UUIDv7 for generated entity IDs and Visual Studio folder visibility fixes.
+- [x] Portfolio management: owner-scoped create/list/get/rename/archive/restore,
+  CSRF, active-account checks, pagination, duplicate-name handling, and data-preservation
+  tests. No new migration was needed. Release build and all 51 tests passed.
 
-## Remaining development steps
+## Development steps
 
-The following is the proposed continuation order; complete each with relevant
-tests and a documented manual check before moving on.
+Continue with the first unchecked step when asked to run the next step. Complete
+one stage with relevant tests and a documented acceptance check before moving on.
 
-1. [ ] Portfolio management API: account-scoped list/create/update and an explicit
-   archive/delete policy. Verify unauthenticated access, cross-account isolation,
-   duplicate-name handling, and populated-portfolio behavior.
+1. [x] Portfolio management API: owner-scoped list/create/get/rename and reversible
+   archive/restore. Hard deletion is unavailable. Account isolation, duplicate names,
+   CSRF, and populated-portfolio preservation are tested.
 2. [ ] Instrument catalog and manual trade entry: stock/ETF selection, purchases,
    sales, fees, validation, pagination, duplicate broker-ID behavior, and an
    audited correction workflow. Verify ownership and invalid/oversold trades.
-   Coordinate rate selection with step 3 before treating entries as tax-ready.
+   Reject new trades in archived portfolios until restored. Coordinate rate
+   selection with step 3 before treating entries as tax-ready.
 3. [ ] NBU exchange-rate integration: dated USD/UAH retrieval, caching/provenance,
    retries, and an explicit weekend/holiday/missing-rate policy. Resolve the
    transaction-date/timezone rules; test using fixed responses and failure cases.

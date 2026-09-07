@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 using ZiApp.Application.Accounts;
+using ZiApp.Application.Portfolios;
 using ZiApp.Infrastructure.Identity;
 using ZiApp.Infrastructure.Persistence;
 
@@ -47,6 +48,7 @@ public static class DependencyInjection
             .AddDefaultTokenProviders();
 
         services.AddScoped<IAccountProvisioningService, AccountProvisioningService>();
+        services.AddScoped<IPortfolioRepository, PortfolioRepository>();
         services.AddOptions<BootstrapAdminOptions>()
             .BindConfiguration(BootstrapAdminOptions.SectionName);
         services.AddHostedService<BootstrapAdminHostedService>();

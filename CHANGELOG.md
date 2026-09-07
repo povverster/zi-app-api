@@ -11,6 +11,14 @@ Planned work and development instructions are in [AGENTS.md](AGENTS.md).
 
 ### Added
 
+- Authenticated, owner-scoped portfolio creation, paginated listing, retrieval,
+  renaming, and reversible archive/restore, with USD defaults, UUIDv7 IDs, CSRF
+  protection, active-account checks, and duplicate-name conflict responses.
+  Archived portfolios retain their trades and report snapshots; hard deletion
+  is unavailable. The existing schema supports these operations without a new migration.
+- Portfolio API documentation and regression coverage for ownership, validation,
+  pagination, concurrent duplicate names, archiving, and historical-data preservation.
+
 - ASP.NET Core/.NET 10 backend with separate API, Application, Domain, and
   Infrastructure projects, PostgreSQL persistence through EF Core/Npgsql,
   and development setup documentation.

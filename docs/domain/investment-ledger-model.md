@@ -7,11 +7,19 @@
 
 A `UserAccount` represents one person who can sign in. It owns any number of
 portfolios. Authentication credentials are intentionally not part of the domain
-model; the authentication stage will map an identity to this stable account ID.
+model; ASP.NET Core Identity now maps credentials to this stable account ID.
 
-The initial roles are `SuperAdmin` and `User`. Only the future administration
-application service may create accounts. Storing the role is necessary but does
-not itself enforce that authorization rule.
+The roles are `SuperAdmin` and `User`. Only the authenticated super-admin
+provisioning endpoint may create accounts, apart from first-admin bootstrap.
+See the [authentication guide](../security/authentication.md).
+
+The [portfolio API](../portfolios/portfolio-management.md) resolves the active
+domain account from the current session. Reads and mutations are owner-scoped,
+including for super administrators. New portfolios use USD and UUIDv7 IDs.
+Portfolio names are trimmed and unique per owner with case-sensitive comparison;
+archived names remain reserved. Archive/restore preserves trades and calculation
+history. Hard deletion is unavailable; future trade-entry workflows must reject
+new trades into archived portfolios.
 
 ## Main relationships
 
@@ -78,7 +86,7 @@ Deleting a calculation run may delete only its own derived match snapshots.
 
 ## Deferred to later stages
 
-- ASP.NET Core Identity credentials, sessions, and super-admin endpoints;
+- instrument catalog and manual trade-entry endpoints;
 - broker import and duplicate detection policies;
 - NBU downloading, weekend/holiday fallback, and provenance payloads;
 - dividends, withholding taxes, deposits, withdrawals, and transfers;

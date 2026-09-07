@@ -37,6 +37,16 @@ public sealed class Portfolio
 
     public UserAccount OwnerAccount { get; private set; } = null!;
 
+    public void Rename(string name)
+    {
+        Name = DomainGuard.RequiredText(name, 200, nameof(name));
+    }
+
+    public void Restore()
+    {
+        IsArchived = false;
+    }
+
     public void Archive()
     {
         IsArchived = true;

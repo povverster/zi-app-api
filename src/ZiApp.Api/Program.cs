@@ -3,7 +3,9 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.OpenApi;
 
+using ZiApp.Api.Accounts;
 using ZiApp.Api.Health;
+using ZiApp.Application.Portfolios;
 using ZiApp.Application.Security;
 using ZiApp.Domain.Accounts;
 using ZiApp.Infrastructure;
@@ -11,6 +13,9 @@ using ZiApp.Infrastructure;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddInfrastructure();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentAccount, CurrentAccount>();
+builder.Services.AddScoped<IPortfolioService, PortfolioService>();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
