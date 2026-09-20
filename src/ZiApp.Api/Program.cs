@@ -5,6 +5,7 @@ using Microsoft.OpenApi;
 
 using ZiApp.Api.Accounts;
 using ZiApp.Api.Health;
+using ZiApp.Application.ExchangeRates;
 using ZiApp.Application.Portfolios;
 using ZiApp.Application.Security;
 using ZiApp.Application.Trading;
@@ -19,6 +20,8 @@ builder.Services.AddScoped<ICurrentAccount, CurrentAccount>();
 builder.Services.AddScoped<IPortfolioService, PortfolioService>();
 builder.Services.AddScoped<InstrumentService>();
 builder.Services.AddScoped<TradeService>();
+builder.Services.AddScoped<ExchangeRateService>();
+builder.Services.AddScoped<TradeRateService>();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {

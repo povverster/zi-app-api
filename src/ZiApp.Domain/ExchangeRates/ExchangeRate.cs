@@ -14,7 +14,11 @@ public sealed class ExchangeRate
         DateOnly effectiveDate,
         decimal rateToUah,
         string source,
-        DateTimeOffset retrievedAtUtc)
+        DateTimeOffset retrievedAtUtc,
+        DateOnly? calculationDate = null,
+        string? sourceUrl = null,
+        string? responseSha256 = null,
+        string? rawResponseJson = null)
     {
         Id = DomainGuard.RequiredId(id, nameof(id));
         CurrencyCode = NormalizeCurrencyCode(currencyCode);
@@ -22,6 +26,10 @@ public sealed class ExchangeRate
         RateToUah = DomainGuard.Positive(rateToUah, nameof(rateToUah));
         Source = DomainGuard.RequiredText(source, 100, nameof(source));
         RetrievedAtUtc = retrievedAtUtc;
+        CalculationDate = calculationDate;
+        SourceUrl = sourceUrl;
+        ResponseSha256 = responseSha256;
+        RawResponseJson = rawResponseJson;
     }
 
     public Guid Id { get; private set; }
@@ -35,6 +43,14 @@ public sealed class ExchangeRate
     public string Source { get; private set; } = null!;
 
     public DateTimeOffset RetrievedAtUtc { get; private set; }
+
+    public DateOnly? CalculationDate { get; private set; }
+
+    public string? SourceUrl { get; private set; }
+
+    public string? ResponseSha256 { get; private set; }
+
+    public string? RawResponseJson { get; private set; }
 
     private static string NormalizeCurrencyCode(string value)
     {

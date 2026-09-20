@@ -11,6 +11,18 @@ Planned work and development instructions are in [AGENTS.md](AGENTS.md).
 
 ### Added
 
+- Exact-date NBU USD/UAH retrieval and immutable database cache, with original JSON,
+  response digest, source URL, calculation date, retrieval time, strict payload
+  validation, bounded timeouts/retries, and missing-rate handling without fallback.
+- Owner-scoped, CSRF-protected trade-rate resolution and provenance endpoints,
+  preserving broker calendar dates without timezone conversion, including old
+  records. One-time assignment records policy, selected date, actor, and time;
+  legacy links and corrected originals keep their existing history.
+- `AddNbuExchangeRates` migration after `AddManualTradeEntry`, plus date, API,
+  cache-concurrency, audit, and data-preserving migration regression tests.
+  Apply before using the rate workflow; no reset is needed. Downgrade is blocked
+  when new provenance/resolution history exists.
+
 - Shared, searchable stock/ETF catalog with super-admin creation and owner-scoped
   manual buy/sell endpoints, fees, pagination, exact decimal-string contracts,
   preserved broker timestamp offsets, and explicit pending exchange-rate status.
@@ -55,8 +67,9 @@ Planned work and development instructions are in [AGENTS.md](AGENTS.md).
 
 ### Changed
 
-- Trade FX links may be null until the upcoming NBU policy/integration resolves
-  them; current entries are not tax-ready. Broker IDs are unique per portfolio
+- Trade FX links may be null until explicit NBU resolution; statuses distinguish
+  Pending, LinkedUnverified, and Resolved, all still not tax-ready.
+  Broker IDs are unique per portfolio
   among current trades, while superseded source records remain available for audit.
 - Fixed local API addresses at HTTP port `5050` and HTTPS port `5051`.
 - New account and Identity user IDs, plus generated test IDs, use UUIDv7.
@@ -65,6 +78,11 @@ Planned work and development instructions are in [AGENTS.md](AGENTS.md).
 - Standardized text files on LF line endings through Git and editor settings.
 
 ### Fixed
+
+- Include timezone data in the Alpine API image for the NBU current-date guard.
+  Broker transaction dates themselves are never timezone-converted.
+- Copy the existing SDK policy and analyzer configuration into Docker builds so
+  container publishing uses the same migration-specific rules as local builds.
 
 - Visual Studio visibility of domain source files and Application/Infrastructure
   feature folders through explicit project folder and compile-item visibility settings.

@@ -2,7 +2,9 @@
 
 Implemented on 2026-09-20. This stage records USD stock/ETF buys and sells,
 validates chronological holdings, and supports audited replacement corrections.
-It does not download NBU rates, produce reports, or provide a frontend screen.
+Trade creation does not download rates. Use the separate
+[NBU resolution workflow](../exchange-rates/nbu-exchange-rates.md) after entry.
+Reports and frontend screens remain pending.
 
 ## Authentication and access
 
@@ -84,10 +86,11 @@ preserve these strings rather than converting them through JavaScript numbers.
 `executedAt` requires an ISO timestamp with seconds, explicit `Z` or numeric
 offset, and at most six fractional digits. Future timestamps are rejected.
 The server stores both `executedAtUtc` and the original `executedAtOriginal`
-string, retaining the submitted offset for future date-policy decisions.
-Legacy records have no original string; no historical timezone is fabricated.
-An offset is not an IANA broker timezone. The NBU transaction-date policy remains
-an explicit decision for the next stage.
+string, retaining the submitted offset. NBU selection uses the original broker
+calendar date without conversion to UTC, Kyiv, or browser time. The user confirmed
+old dates are correct too: where the original string is absent, use the stored
+calendar date unchanged. No historical timezone is fabricated.
+See the [versioned date policy](../exchange-rates/nbu-exchange-rates.md#agreed-broker-date-policy).
 
 ### Ownership, duplicates, and validation
 
@@ -158,10 +161,13 @@ use `401`/`403`/`404`; framework binding/CSRF errors need not include this code.
 
 New manual entries have `exchangeRateId: null`, `rateStatus: "Pending"`, and
 `isTaxReady: false`. Previously linked entries report `LinkedUnverified`; a stored
-link alone does not establish the still-unresolved NBU date policy. This API never
-marks a trade tax-ready and does not accept a client-selected rate.
-The next stage must define date/weekend/missing-rate policy, retrieve dated NBU
-rates with provenance, and resolve pending entries without rewriting source data.
+link alone does not establish the new NBU selection/provenance audit. Explicit
+[rate resolution](../exchange-rates/nbu-exchange-rates.md) changes a pending link to
+`Resolved`, recording the selected date, policy, actor, and time. The API never
+marks a trade tax-ready and does not accept a client-selected rate. Corrections
+preserve the original resolved link/history and start the replacement pending.
+The NBU workflow uses the broker calendar date, including weekends/holidays;
+missing exact-date rates are not replaced by a fallback.
 
 Apply **`20260920125916_AddManualTradeEntry`** after the existing three migrations,
 using the [README procedure](../../README.md#apply-pending-migrations).
@@ -171,6 +177,10 @@ changes broker-ID uniqueness to current records. Existing IDs, financial values,
 rates, trades, and saved tax matches are preserved. A reset is not required.
 Downgrading refuses to erase corrections or replace pending FX links with fake
 values; use a forward migration once new data exists. API startup does not migrate.
+
+The subsequent `20260920191527_AddNbuExchangeRates` migration adds nullable rate
+provenance and resolution audit fields while preserving all existing links and
+inputs. Apply it as well before using the new rate workflow.
 
 ## Acceptance and verification
 

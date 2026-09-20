@@ -70,6 +70,13 @@ Keep all three as separate Git repositories.
 - Manual trade amounts are invariant decimal JSON strings, limited to numeric(28,12)
   without rounding. Retain the submitted timestamp/offset as well as normalized UTC.
   New trades have pending nullable FX links; never invent a rate or claim tax readiness.
+- The user confirmed all broker dates are correct, including old records: select
+  the NBU rate by the original broker calendar date without timezone conversion.
+  If the original string is absent, use the already stored date unchanged. Never
+  reinterpret legacy dates as Kyiv time. UTC remains for chronological ordering.
+- NBU rates use exact-date retrieval, immutable source-response provenance, and
+  decimal strings. No weekend fallback, cache overwrite, or legacy-link replacement.
+  Resolve pending links explicitly under the portfolio lock; Resolved is not tax-ready.
 - Corrections append a replacement and audit record, preserving original inputs and
   saved report snapshots. Use only current (not superseded) trades for current results.
   Preserve `FifoOrderId` across corrections and pass it to the FIFO calculator.
@@ -89,17 +96,18 @@ Keep all three as separate Git repositories.
 - [Authentication and first-admin setup](docs/security/authentication.md)
 - [Portfolio API contract and acceptance checks](docs/portfolios/portfolio-management.md)
 - [Instrument/trade contract, corrections, and migration](docs/trading/manual-trade-entry.md)
+- [NBU rates, broker-date policy, provenance, and migration](docs/exchange-rates/nbu-exchange-rates.md)
 - [Local setup](README.md) and [CI commands](.github/workflows/ci.yml)
 
-Authentication, portfolio management, and manual trade entry are implemented. Use their dedicated
-guides and current code for the HTTP contracts. Unresolved tax/rate rules in the
-calculation specification remain unresolved.
+Authentication, portfolios, manual trades, and NBU rate resolution are implemented.
+Use their dedicated guides and current code for HTTP contracts. Filing rules and
+report rounding in the calculation specification still need separate validation.
 
 ## Development progress
 
-Status updated on 2026-09-20 after instrument catalog/manual trade entry.
-This stage started from commit `97b453b`; its contract and verification are in the
-[trade guide](docs/trading/manual-trade-entry.md).
+Status updated on 2026-09-20 after NBU exchange-rate integration.
+This stage started from commit `7ac3875`; its contract and verification are in the
+[NBU guide](docs/exchange-rates/nbu-exchange-rates.md).
 
 - [x] Backend foundation: .NET 10 solution and layer references, Swagger/OpenAPI,
   health endpoints, PostgreSQL/EF Core, local migration tooling, Dockerfile,
@@ -123,6 +131,17 @@ This stage started from commit `97b453b`; its contract and verification are in t
   corrections. Original records/rates/report snapshots survive correction.
   `AddManualTradeEntry` is required. Release build and all 100 tests passed;
   EF reports no pending model changes. The user's database was not changed.
+- [x] NBU exact-date USD/UAH retrieval/cache, immutable response provenance,
+  bounded retries, owner-scoped one-time FX resolution, and documented broker-date
+  policy for new and legacy records. Requires `AddNbuExchangeRates`.
+  Fixed-response and PostgreSQL tests cover errors, concurrency, and audit retention.
+  Locked restore and Release build passed (zero warnings/errors); all 162 tests
+  passed (41 unit, 121 integration, none skipped). EF reports no pending model
+  changes. Only disposable test databases were migrated, not the user's database.
+  The Alpine Dockerfile includes timezone data for the current-date guard and
+  copies the existing SDK/analyzer configuration into its build.
+  Docker image build passed; a network-disabled check confirmed timezone data
+  and non-root execution. Documentation links, LF endings, and diff checks passed.
 
 ## Development steps
 
@@ -135,13 +154,11 @@ one stage with relevant tests and a documented acceptance check before moving on
 2. [x] Instrument catalog and manual trade entry: stock/ETF selection, purchases,
    sales, fees, pagination, duplicate broker IDs, and audited replacement corrections.
    Ownership, archived portfolios, invalid/oversold trades, concurrency, and upgrade
-   preservation are tested. Entries remain pending FX policy, not tax-ready.
-3. [ ] NBU exchange-rate integration: dated USD/UAH retrieval, caching/provenance,
-   retries, and an explicit weekend/holiday/missing-rate policy. Resolve the
-   transaction-date/timezone rules; test using fixed responses and failure cases.
-   Consume preserved `ExecutedAtOriginal` offsets where available; legacy rows may
-   lack them. Resolve nullable trade FX links without fabricating historical zones,
-   overwriting original inputs, or changing saved report snapshots.
+   preservation are tested. Entries start pending FX resolution, not tax-ready.
+3. [x] NBU exchange-rate integration: exact-date retrieval including weekends/
+   holidays, missing-rate rejection, provenance, retries, and explicit resolution.
+   Use broker dates without conversion, even for old records. Preserve source
+   inputs, legacy links, and saved reports. No scheduler/batch import is included.
 4. [ ] Split management and holdings/realized-results workflows: persist authorized
    split events, load current nonsuperseded trades with resolved rates into the FIFO
    engine (including their `FifoOrderId`), and expose results.
@@ -182,9 +199,10 @@ changes, check accuracy, paths, and whitespace; a full backend test run is unnec
 
 Migrations live in `src/ZiApp.Infrastructure/Persistence/Migrations`.
 The current chain is `InitialFoundation`, `InitialInvestmentLedger`,
-`AddIdentityAuthentication`, then `AddManualTradeEntry`. The model snapshot is not
-another migration. The newest migration preserves existing data and refuses unsafe
-downgrade when pending-rate trades/correction history exist; use forward migrations.
+`AddIdentityAuthentication`, `AddManualTradeEntry`, then `AddNbuExchangeRates`.
+The model snapshot is not another migration. These upgrades preserve existing data.
+Manual-trade downgrade blocks loss of pending rates/correction history; NBU downgrade
+blocks loss of response provenance/resolution history. Use forward migrations.
 
 ```powershell
 dotnet ef migrations add MigrationName --project src/ZiApp.Infrastructure --startup-project src/ZiApp.Api --output-dir Persistence/Migrations

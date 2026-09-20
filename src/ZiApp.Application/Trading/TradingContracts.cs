@@ -37,7 +37,8 @@ public sealed record TradeDetails(Guid Id, Guid FifoOrderId, Guid PortfolioId, G
         value.Id, value.FifoOrderId, value.PortfolioId, value.InstrumentId, value.Side, value.ExecutedAtUtc,
         value.ExecutedAtOriginal,
         Format(value.Quantity), Format(value.UnitPriceUsd), Format(value.FeeUsd), value.BrokerTransactionId,
-        value.ExchangeRateId, value.ExchangeRateId is null ? "Pending" : "LinkedUnverified", false, value.IsSuperseded);
+        value.ExchangeRateId, value.ExchangeRateId is null ? "Pending"
+            : value.ExchangeRatePolicy is null ? "LinkedUnverified" : "Resolved", false, value.IsSuperseded);
 
     private static string Format(decimal value) => value.ToString("0.############", CultureInfo.InvariantCulture);
 }

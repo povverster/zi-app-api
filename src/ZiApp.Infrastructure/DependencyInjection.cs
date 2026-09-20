@@ -4,8 +4,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 using ZiApp.Application.Accounts;
+using ZiApp.Application.ExchangeRates;
 using ZiApp.Application.Portfolios;
 using ZiApp.Application.Trading;
+using ZiApp.Infrastructure.ExchangeRates;
 using ZiApp.Infrastructure.Identity;
 using ZiApp.Infrastructure.Persistence;
 
@@ -51,6 +53,11 @@ public static class DependencyInjection
         services.AddScoped<IAccountProvisioningService, AccountProvisioningService>();
         services.AddScoped<IPortfolioRepository, PortfolioRepository>();
         services.AddScoped<ITradingRepository, TradingRepository>();
+        services.AddSingleton(TimeProvider.System);
+        services.AddScoped<IExchangeRateRepository, ExchangeRateRepository>();
+        services.AddScoped<ITradeRateRepository, TradeRateRepository>();
+        services.AddHttpClient<INbuRateClient, NbuRateClient>(client => client.Timeout = Timeout.InfiniteTimeSpan)
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
         services.AddOptions<BootstrapAdminOptions>()
             .BindConfiguration(BootstrapAdminOptions.SectionName);
         services.AddHostedService<BootstrapAdminHostedService>();

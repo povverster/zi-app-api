@@ -76,12 +76,31 @@ there is no new database migration to apply for portfolio management.
 
 The [trade-entry guide](docs/trading/manual-trade-entry.md) documents catalog search,
 admin-only catalog additions, owner-scoped buys/sells, fees, audited corrections,
-decimal-string inputs, and pending exchange rates. Trades are not tax-ready yet;
-NBU rate selection is the next backend stage.
+decimal-string inputs, and initially pending exchange rates. Trades are not
+tax-ready yet; the rate-resolution workflow is available below.
 
 Apply `20260920125916_AddManualTradeEntry` using the procedure below before using
 these endpoints. It preserves existing data; no reset is required. Correction
 history and pending-rate trades prevent an unsafe downgrade.
+
+## NBU exchange rates
+
+The [NBU guide](docs/exchange-rates/nbu-exchange-rates.md) covers exact-date USD/UAH
+fetching and caching, source-response provenance, and owner-scoped trade resolution.
+Use the broker's recorded calendar date without timezone conversion, including
+older records. Missing official rates stay pending; there is no weekend fallback.
+Rates are decimal JSON strings, and resolving a rate does not mean filing readiness.
+
+Apply `20260920191527_AddNbuExchangeRates` after `AddManualTradeEntry`; no database
+reset is required. The API needs outbound HTTPS access to `bank.gov.ua`, without
+an API key. GET reads cached data/status; CSRF-protected POST fetches/resolves:
+
+- `GET /api/exchange-rates/usd/{date}`
+- `POST /api/exchange-rates/usd/{date}/fetch`
+- `GET /api/portfolios/{portfolioId}/trades/{tradeId}/exchange-rate`
+- `POST /api/portfolios/{portfolioId}/trades/{tradeId}/exchange-rate/resolve`
+
+No background rate import, cache overwrite, or automatic trade backfill is enabled.
 
 ## Tests
 
@@ -90,6 +109,7 @@ dotnet test ZiApp.sln --configuration Release
 ```
 
 Integration tests create a temporary PostgreSQL container and apply real migrations.
+NBU tests use fixed HTTP responses; they do not depend on live external rates.
 
 ## Apply pending migrations
 

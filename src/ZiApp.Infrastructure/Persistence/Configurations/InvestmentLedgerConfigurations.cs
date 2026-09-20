@@ -176,6 +176,8 @@ public sealed class ExchangeRateConfiguration : IEntityTypeConfiguration<Exchang
         builder.ToTable("exchange_rates", tableBuilder =>
         {
             tableBuilder.HasCheckConstraint("ck_exchange_rates_rate_to_uah", "rate_to_uah > 0");
+            tableBuilder.HasCheckConstraint("ck_exchange_rates_nbu_provenance",
+                "source <> 'NBU-ExchangeSite-v1' OR (calculation_date IS NOT NULL AND source_url IS NOT NULL AND response_sha256 IS NOT NULL AND length(response_sha256) = 64 AND raw_response_json IS NOT NULL)");
         });
 
         builder.HasKey(rate => rate.Id)
@@ -203,6 +205,10 @@ public sealed class ExchangeRateConfiguration : IEntityTypeConfiguration<Exchang
         builder.Property(rate => rate.RetrievedAtUtc)
             .HasColumnName("retrieved_at_utc")
             .IsRequired();
+        builder.Property(rate => rate.CalculationDate).HasColumnName("calculation_date");
+        builder.Property(rate => rate.SourceUrl).HasColumnName("source_url").HasMaxLength(500);
+        builder.Property(rate => rate.ResponseSha256).HasColumnName("response_sha256").HasMaxLength(64);
+        builder.Property(rate => rate.RawResponseJson).HasColumnName("raw_response_json").HasColumnType("text");
 
         builder.HasIndex(rate => new { rate.CurrencyCode, rate.EffectiveDate, rate.Source })
             .IsUnique()
@@ -230,6 +236,8 @@ public sealed class InvestmentTransactionConfiguration : IEntityTypeConfiguratio
             tableBuilder.HasCheckConstraint(
                 "ck_investment_transactions_fee_usd",
                 "fee_usd >= 0");
+            tableBuilder.HasCheckConstraint("ck_investment_transactions_rate_resolution",
+                "(exchange_rate_policy IS NULL AND exchange_rate_selected_date IS NULL AND exchange_rate_resolved_at_utc IS NULL AND exchange_rate_resolved_by_account_id IS NULL) OR (exchange_rate_id IS NOT NULL AND exchange_rate_policy IS NOT NULL AND exchange_rate_selected_date IS NOT NULL AND exchange_rate_resolved_at_utc IS NOT NULL AND exchange_rate_resolved_by_account_id IS NOT NULL)");
         });
 
         builder.HasKey(transaction => transaction.Id)
@@ -246,6 +254,14 @@ public sealed class InvestmentTransactionConfiguration : IEntityTypeConfiguratio
             .IsRequired();
         builder.Property(transaction => transaction.ExchangeRateId)
             .HasColumnName("exchange_rate_id");
+        builder.Property(transaction => transaction.ExchangeRateSelectedDate).HasColumnName("exchange_rate_selected_date");
+        builder.Property(transaction => transaction.ExchangeRatePolicy).HasColumnName("exchange_rate_policy").HasMaxLength(80);
+        builder.Property(transaction => transaction.ExchangeRateResolvedAtUtc).HasColumnName("exchange_rate_resolved_at_utc");
+        builder.Property(transaction => transaction.ExchangeRateResolvedByAccountId).HasColumnName("exchange_rate_resolved_by_account_id");
+        builder.HasIndex(transaction => transaction.ExchangeRateResolvedByAccountId)
+            .HasDatabaseName("ix_investment_transactions_rate_resolved_by");
+        builder.HasOne<UserAccount>().WithMany().HasForeignKey(transaction => transaction.ExchangeRateResolvedByAccountId)
+            .OnDelete(DeleteBehavior.Restrict).HasConstraintName("fk_investment_transactions_rate_resolved_by");
         builder.Property(transaction => transaction.IsSuperseded)
             .HasColumnName("is_superseded");
         builder.Property(transaction => transaction.FifoOrderId)

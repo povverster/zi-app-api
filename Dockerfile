@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
 WORKDIR /source
 
-COPY Directory.Build.props NuGet.config ./
+COPY Directory.Build.props NuGet.config global.json .editorconfig ./
 COPY src/ZiApp.Api/ZiApp.Api.csproj src/ZiApp.Api/
 COPY src/ZiApp.Application/ZiApp.Application.csproj src/ZiApp.Application/
 COPY src/ZiApp.Domain/ZiApp.Domain.csproj src/ZiApp.Domain/
@@ -22,6 +22,9 @@ RUN dotnet publish src/ZiApp.Api/ZiApp.Api.csproj \
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS final
 WORKDIR /app
+
+# The NBU future-date guard needs the Europe/Kyiv calendar, not the container's UTC date.
+RUN apk add --no-cache tzdata
 
 ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080

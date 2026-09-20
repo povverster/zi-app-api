@@ -77,6 +77,34 @@ public sealed class InvestmentTransaction
 
     public bool IsSuperseded { get; private set; }
 
+    public DateOnly? ExchangeRateSelectedDate { get; private set; }
+    public string? ExchangeRatePolicy { get; private set; }
+    public DateTimeOffset? ExchangeRateResolvedAtUtc { get; private set; }
+    public Guid? ExchangeRateResolvedByAccountId { get; private set; }
+
+    public void ResolveExchangeRate(ExchangeRate rate, DateOnly selectedDate, string policy,
+        Guid actorAccountId, DateTimeOffset resolvedAtUtc)
+    {
+        ArgumentNullException.ThrowIfNull(rate);
+        if (ExchangeRateId is not null || IsSuperseded)
+        {
+            throw new InvalidOperationException("An existing or superseded trade rate cannot be replaced.");
+        }
+
+        if (rate.CurrencyCode != "USD" || rate.EffectiveDate != selectedDate)
+        {
+            throw new ArgumentException("The rate must be USD for the selected calendar date.", nameof(rate));
+        }
+
+        string validatedPolicy = DomainGuard.RequiredText(policy, 80, nameof(policy));
+        Guid validatedActor = DomainGuard.RequiredId(actorAccountId, nameof(actorAccountId));
+        ExchangeRateId = rate.Id;
+        ExchangeRateSelectedDate = selectedDate;
+        ExchangeRatePolicy = validatedPolicy;
+        ExchangeRateResolvedByAccountId = validatedActor;
+        ExchangeRateResolvedAtUtc = resolvedAtUtc;
+    }
+
     public void Supersede()
     {
         if (IsSuperseded)

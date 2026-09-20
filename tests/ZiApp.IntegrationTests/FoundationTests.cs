@@ -47,5 +47,11 @@ public sealed class FoundationTests(ApiFixture fixture) : IClassFixture<ApiFixtu
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("\"openapi\"", document);
         Assert.Contains("ZiApp API", document);
+        using var json = System.Text.Json.JsonDocument.Parse(document);
+        var paths = json.RootElement.GetProperty("paths");
+        Assert.True(paths.TryGetProperty("/api/exchange-rates/usd/{date}/fetch", out _));
+        Assert.True(paths.TryGetProperty("/api/portfolios/{portfolioId}/trades/{tradeId}/exchange-rate/resolve", out _));
+        Assert.Equal("string", json.RootElement.GetProperty("components").GetProperty("schemas")
+            .GetProperty("ExchangeRateDetails").GetProperty("properties").GetProperty("rateToUah").GetProperty("type").GetString());
     }
 }

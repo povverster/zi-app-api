@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <Folder Include="Identity\" />
+    <Folder Include="ExchangeRates\" />
     <Folder Include="Persistence\" />
     <Folder Include="Persistence\Configurations\" />
     <Folder Include="Persistence\Migrations\" />

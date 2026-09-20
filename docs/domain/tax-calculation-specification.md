@@ -33,12 +33,18 @@ For example, a 5-for-1 split has numerator `5` and denominator `1`.
 Manual-entry records may exist with unresolved exchange rates; these are not
 valid tax-calculation inputs and must not be supplied to the calculator with
 placeholder rates. The [trade API](../trading/manual-trade-entry.md) preserves
-submitted numeric timezone offsets and normalized UTC, without deciding the
-eventual NBU calendar-date rule.
+submitted numeric timezone offsets and normalized UTC. The user confirmed that
+all broker calendar dates are already correct, including old records: do not
+convert them for NBU selection. Use the original timestamp's date when available;
+otherwise use the stored date unchanged. The
+[NBU integration guide](../exchange-rates/nbu-exchange-rates.md) defines both
+versioned policies, exact-date weekend/holiday lookup, and missing-rate rejection.
+Resolved rates still do not establish filing readiness.
 
-Imported timestamps must eventually include the broker timezone and be normalized
-to an absolute instant. Until the import format is defined, the golden tests use
-UTC placeholders while preserving the spreadsheet ordering.
+Future broker imports must preserve the broker calendar date and establish an
+absolute instant for ordering from documented source offsets/timezones; do not
+shift the rate date during normalization. Import formats are still undefined.
+The spreadsheet golden tests use UTC placeholders while preserving sheet ordering.
 
 ## Event ordering and FIFO
 
@@ -149,8 +155,8 @@ reproduced after business rules evolve.
 
 ## Decisions still required before filing-ready reports
 
-- broker timestamp timezone and same-timestamp import ordering;
-- NBU rate selection for weekends, holidays, and unavailable dates;
+- broker import formats, source offset interpretation for absolute ordering, and
+  deterministic same-timestamp import IDs (without shifting broker rate dates);
 - the official report-level rounding rules;
 - treatment of non-trading charges, withholding tax, dividends, and transfers;
 - legal review of the calculation and generated Ukrainian tax-report format.
