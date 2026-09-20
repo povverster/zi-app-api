@@ -21,20 +21,24 @@ public sealed class InvestmentTransaction
         Guid id,
         Guid portfolioId,
         Guid instrumentId,
-        Guid exchangeRateId,
+        Guid? exchangeRateId,
         TradeSide side,
         DateTimeOffset executedAtUtc,
         decimal quantity,
         decimal unitPriceUsd,
         decimal feeUsd,
-        string? brokerTransactionId = null)
+        string? brokerTransactionId = null,
+        Guid? fifoOrderId = null,
+        string? executedAtOriginal = null)
     {
         Id = DomainGuard.RequiredId(id, nameof(id));
+        FifoOrderId = DomainGuard.RequiredId(fifoOrderId ?? id, nameof(fifoOrderId));
         PortfolioId = DomainGuard.RequiredId(portfolioId, nameof(portfolioId));
         InstrumentId = DomainGuard.RequiredId(instrumentId, nameof(instrumentId));
-        ExchangeRateId = DomainGuard.RequiredId(exchangeRateId, nameof(exchangeRateId));
+        ExchangeRateId = exchangeRateId is null ? null : DomainGuard.RequiredId(exchangeRateId.Value, nameof(exchangeRateId));
         Side = DomainGuard.DefinedEnum(side, nameof(side));
         ExecutedAtUtc = executedAtUtc;
+        ExecutedAtOriginal = executedAtOriginal is null ? null : DomainGuard.RequiredText(executedAtOriginal, 32, nameof(executedAtOriginal));
         Quantity = DomainGuard.Positive(quantity, nameof(quantity));
         UnitPriceUsd = DomainGuard.Positive(unitPriceUsd, nameof(unitPriceUsd));
         FeeUsd = DomainGuard.NonNegative(feeUsd, nameof(feeUsd));
@@ -43,15 +47,19 @@ public sealed class InvestmentTransaction
 
     public Guid Id { get; private set; }
 
+    public Guid FifoOrderId { get; private set; }
+
     public Guid PortfolioId { get; private set; }
 
     public Guid InstrumentId { get; private set; }
 
-    public Guid ExchangeRateId { get; private set; }
+    public Guid? ExchangeRateId { get; private set; }
 
     public TradeSide Side { get; private set; }
 
     public DateTimeOffset ExecutedAtUtc { get; private set; }
+
+    public string? ExecutedAtOriginal { get; private set; }
 
     public decimal Quantity { get; private set; }
 
@@ -65,7 +73,19 @@ public sealed class InvestmentTransaction
 
     public Instrument Instrument { get; private set; } = null!;
 
-    public ExchangeRate ExchangeRate { get; private set; } = null!;
+    public ExchangeRate? ExchangeRate { get; private set; }
+
+    public bool IsSuperseded { get; private set; }
+
+    public void Supersede()
+    {
+        if (IsSuperseded)
+        {
+            throw new InvalidOperationException("This trade has already been corrected.");
+        }
+
+        IsSuperseded = true;
+    }
 
     private static string? NormalizeBrokerTransactionId(string? value)
     {

@@ -7,6 +7,7 @@ using ZiApp.Api.Accounts;
 using ZiApp.Api.Health;
 using ZiApp.Application.Portfolios;
 using ZiApp.Application.Security;
+using ZiApp.Application.Trading;
 using ZiApp.Domain.Accounts;
 using ZiApp.Infrastructure;
 
@@ -16,6 +17,8 @@ builder.Services.AddInfrastructure();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentAccount, CurrentAccount>();
 builder.Services.AddScoped<IPortfolioService, PortfolioService>();
+builder.Services.AddScoped<InstrumentService>();
+builder.Services.AddScoped<TradeService>();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {

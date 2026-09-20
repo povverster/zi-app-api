@@ -88,6 +88,7 @@ public sealed class InvestmentLedgerPersistenceTests(ApiFixture fixture) : IClas
             Assert.Equal("Integration Investor", storedTransaction.Portfolio.OwnerAccount.DisplayName);
             Assert.Equal(InstrumentType.Etf, storedTransaction.Instrument.Type);
             Assert.Equal(2.5m, storedTransaction.Quantity);
+            Assert.NotNull(storedTransaction.ExchangeRate);
             Assert.Equal(42.1549m, storedTransaction.ExchangeRate.RateToUah);
         }
     }

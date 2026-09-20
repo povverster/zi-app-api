@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 using ZiApp.Application.Accounts;
 using ZiApp.Application.Portfolios;
+using ZiApp.Application.Trading;
 using ZiApp.Infrastructure.Identity;
 using ZiApp.Infrastructure.Persistence;
 
@@ -49,6 +50,7 @@ public static class DependencyInjection
 
         services.AddScoped<IAccountProvisioningService, AccountProvisioningService>();
         services.AddScoped<IPortfolioRepository, PortfolioRepository>();
+        services.AddScoped<ITradingRepository, TradingRepository>();
         services.AddOptions<BootstrapAdminOptions>()
             .BindConfiguration(BootstrapAdminOptions.SectionName);
         services.AddHostedService<BootstrapAdminHostedService>();

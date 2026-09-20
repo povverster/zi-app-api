@@ -11,6 +11,15 @@ Planned work and development instructions are in [AGENTS.md](AGENTS.md).
 
 ### Added
 
+- Shared, searchable stock/ETF catalog with super-admin creation and owner-scoped
+  manual buy/sell endpoints, fees, pagination, exact decimal-string contracts,
+  preserved broker timestamp offsets, and explicit pending exchange-rate status.
+- Audited trade corrections that retain original inputs and report snapshots;
+  stable FIFO ordering across replacements, broker-ID conflict handling, archived
+  portfolio protection, and transaction-safe concurrent overselling checks.
+- `AddManualTradeEntry` forward migration and regression tests for existing-data
+  upgrades, audit preservation, access control, precision, splits, and concurrency.
+  Apply the migration before using the new API; no database reset is required.
 - Authenticated, owner-scoped portfolio creation, paginated listing, retrieval,
   renaming, and reversible archive/restore, with USD defaults, UUIDv7 IDs, CSRF
   protection, active-account checks, and duplicate-name conflict responses.
@@ -46,6 +55,9 @@ Planned work and development instructions are in [AGENTS.md](AGENTS.md).
 
 ### Changed
 
+- Trade FX links may be null until the upcoming NBU policy/integration resolves
+  them; current entries are not tax-ready. Broker IDs are unique per portfolio
+  among current trades, while superseded source records remain available for audit.
 - Fixed local API addresses at HTTP port `5050` and HTTPS port `5051`.
 - New account and Identity user IDs, plus generated test IDs, use UUIDv7.
   Existing IDs and deterministic seed IDs are preserved; the database type

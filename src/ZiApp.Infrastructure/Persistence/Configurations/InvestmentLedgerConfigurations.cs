@@ -245,8 +245,11 @@ public sealed class InvestmentTransactionConfiguration : IEntityTypeConfiguratio
             .HasColumnName("instrument_id")
             .IsRequired();
         builder.Property(transaction => transaction.ExchangeRateId)
-            .HasColumnName("exchange_rate_id")
-            .IsRequired();
+            .HasColumnName("exchange_rate_id");
+        builder.Property(transaction => transaction.IsSuperseded)
+            .HasColumnName("is_superseded");
+        builder.Property(transaction => transaction.FifoOrderId)
+            .HasColumnName("fifo_order_id");
         builder.Property(transaction => transaction.Side)
             .HasColumnName("side")
             .HasConversion<string>()
@@ -255,6 +258,9 @@ public sealed class InvestmentTransactionConfiguration : IEntityTypeConfiguratio
         builder.Property(transaction => transaction.ExecutedAtUtc)
             .HasColumnName("executed_at_utc")
             .IsRequired();
+        builder.Property(transaction => transaction.ExecutedAtOriginal)
+            .HasColumnName("executed_at_original")
+            .HasMaxLength(32);
         builder.Property(transaction => transaction.Quantity)
             .HasColumnName("quantity")
             .HasPrecision(28, 12)
@@ -300,7 +306,7 @@ public sealed class InvestmentTransactionConfiguration : IEntityTypeConfiguratio
             .HasDatabaseName("ix_investment_transactions_fifo_order");
         builder.HasIndex(transaction => new { transaction.PortfolioId, transaction.BrokerTransactionId })
             .IsUnique()
-            .HasFilter("broker_transaction_id IS NOT NULL")
+            .HasFilter("broker_transaction_id IS NOT NULL AND NOT is_superseded")
             .HasDatabaseName("ux_investment_transactions_portfolio_broker_id");
     }
 }

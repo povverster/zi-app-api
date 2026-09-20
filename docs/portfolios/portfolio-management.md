@@ -1,7 +1,8 @@
 # Portfolio management API
 
-Implemented on 2026-09-07. This stage adds account-scoped portfolio management;
-instrument/trade entry and tax-report generation remain later stages.
+Implemented on 2026-09-07. This stage adds account-scoped portfolio management.
+The [instrument/trade API](../trading/manual-trade-entry.md) followed on 2026-09-20;
+tax-report generation remains a later stage.
 
 ## Access and ownership
 
@@ -79,8 +80,8 @@ restored. Renaming an archived portfolio is allowed.
 Archiving changes only the portfolio's archive flag. It does not remove or
 rewrite trades, exchange rates, tax calculation runs, or FIFO match snapshots.
 Historical data stays available to future authorized reporting workflows.
-When trade-entry workflows are added, they must reject new trades into archived
-portfolios until the owner restores them.
+Trade creation and audited corrections reject archived portfolios until the owner
+restores them; authorized trade/audit reads remain available.
 
 No new migration is required: `name`, `is_archived`, and the owner/name unique
 index already exist in `InitialInvestmentLedger`. A fresh local database still

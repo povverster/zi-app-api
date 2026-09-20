@@ -6,7 +6,8 @@ public sealed record PurchaseTaxLot(
     decimal Quantity,
     decimal UnitPriceUsd,
     decimal FeeUsd,
-    decimal UsdToUahRate);
+    decimal UsdToUahRate,
+    string? FifoOrderId = null);
 
 public sealed record SaleTaxTransaction(
     string Id,
@@ -14,7 +15,8 @@ public sealed record SaleTaxTransaction(
     decimal Quantity,
     decimal UnitPriceUsd,
     decimal FeeUsd,
-    decimal UsdToUahRate);
+    decimal UsdToUahRate,
+    string? FifoOrderId = null);
 
 public sealed record StockSplitEvent(
     string Id,

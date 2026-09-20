@@ -66,7 +66,14 @@ Keep all three as separate Git repositories.
   calculations or overwrite stored source values with display-rounded values.
 - Portfolio names are trimmed and case-sensitive, unique per owner including
   archived portfolios. Creation uses USD. Prefer reversible archive/restore;
-  there is no hard-delete endpoint. Future trade entry must reject archived portfolios.
+  there is no hard-delete endpoint. Trade creation/correction rejects archived portfolios.
+- Manual trade amounts are invariant decimal JSON strings, limited to numeric(28,12)
+  without rounding. Retain the submitted timestamp/offset as well as normalized UTC.
+  New trades have pending nullable FX links; never invent a rate or claim tax readiness.
+- Corrections append a replacement and audit record, preserving original inputs and
+  saved report snapshots. Use only current (not superseded) trades for current results.
+  Preserve `FifoOrderId` across corrections and pass it to the FIFO calculator.
+  All future ledger writers must coordinate with the portfolio row-lock transaction.
 - FIFO is mandatory. Order by broker execution time and the documented stable-ID
   tie-breaker; UUID generation time does not replace trade execution time.
 - Convert purchase amounts/fees at the purchase-date rate and sale amounts/fees at
@@ -81,17 +88,18 @@ Keep all three as separate Git repositories.
 - [Ledger model and database invariants](docs/domain/investment-ledger-model.md)
 - [Authentication and first-admin setup](docs/security/authentication.md)
 - [Portfolio API contract and acceptance checks](docs/portfolios/portfolio-management.md)
+- [Instrument/trade contract, corrections, and migration](docs/trading/manual-trade-entry.md)
 - [Local setup](README.md) and [CI commands](.github/workflows/ci.yml)
 
-Authentication and portfolio management are implemented. Use their dedicated
+Authentication, portfolio management, and manual trade entry are implemented. Use their dedicated
 guides and current code for the HTTP contracts. Unresolved tax/rate rules in the
 calculation specification remain unresolved.
 
 ## Development progress
 
-Status updated on 2026-09-07 after the portfolio management stage. Implementation
-started from commit `23a3a2e`; the stage's verification is recorded in the
-[portfolio guide](docs/portfolios/portfolio-management.md).
+Status updated on 2026-09-20 after instrument catalog/manual trade entry.
+This stage started from commit `97b453b`; its contract and verification are in the
+[trade guide](docs/trading/manual-trade-entry.md).
 
 - [x] Backend foundation: .NET 10 solution and layer references, Swagger/OpenAPI,
   health endpoints, PostgreSQL/EF Core, local migration tooling, Dockerfile,
@@ -101,7 +109,7 @@ started from commit `23a3a2e`; the stage's verification is recorded in the
   This is a domain calculator, not a finished tax-report feature.
 - [x] Ledger persistence foundation: accounts, portfolios, instruments, trades,
   rates, splits, calculation runs, match snapshots, constraints, and persistence tests.
-  Portfolio HTTP workflows are now available; trade-entry workflows remain pending.
+  Portfolio and manual trade HTTP workflows are now available.
 - [x] Authentication: Identity credentials linked to domain accounts, login/logout,
   current-account and CSRF endpoints, super-admin account creation, first-admin
   bootstrap, cookie settings, password/lockout policy, and integration tests.
@@ -109,6 +117,12 @@ started from commit `23a3a2e`; the stage's verification is recorded in the
 - [x] Portfolio management: owner-scoped create/list/get/rename/archive/restore,
   CSRF, active-account checks, pagination, duplicate-name handling, and data-preservation
   tests. No new migration was needed. Release build and all 51 tests passed.
+- [x] Instrument catalog and manual trades: searchable catalog with admin-only
+  additions; owner-scoped buys/sells, exact decimals, pagination, broker-ID conflicts,
+  split-aware chronological validation, concurrent-write protection, and audited
+  corrections. Original records/rates/report snapshots survive correction.
+  `AddManualTradeEntry` is required. Release build and all 100 tests passed;
+  EF reports no pending model changes. The user's database was not changed.
 
 ## Development steps
 
@@ -118,16 +132,19 @@ one stage with relevant tests and a documented acceptance check before moving on
 1. [x] Portfolio management API: owner-scoped list/create/get/rename and reversible
    archive/restore. Hard deletion is unavailable. Account isolation, duplicate names,
    CSRF, and populated-portfolio preservation are tested.
-2. [ ] Instrument catalog and manual trade entry: stock/ETF selection, purchases,
-   sales, fees, validation, pagination, duplicate broker-ID behavior, and an
-   audited correction workflow. Verify ownership and invalid/oversold trades.
-   Reject new trades in archived portfolios until restored. Coordinate rate
-   selection with step 3 before treating entries as tax-ready.
+2. [x] Instrument catalog and manual trade entry: stock/ETF selection, purchases,
+   sales, fees, pagination, duplicate broker IDs, and audited replacement corrections.
+   Ownership, archived portfolios, invalid/oversold trades, concurrency, and upgrade
+   preservation are tested. Entries remain pending FX policy, not tax-ready.
 3. [ ] NBU exchange-rate integration: dated USD/UAH retrieval, caching/provenance,
    retries, and an explicit weekend/holiday/missing-rate policy. Resolve the
    transaction-date/timezone rules; test using fixed responses and failure cases.
+   Consume preserved `ExecutedAtOriginal` offsets where available; legacy rows may
+   lack them. Resolve nullable trade FX links without fabricating historical zones,
+   overwriting original inputs, or changing saved report snapshots.
 4. [ ] Split management and holdings/realized-results workflows: persist authorized
-   split events, load the ledger into the existing FIFO engine, and expose results.
+   split events, load current nonsuperseded trades with resolved rates into the FIFO
+   engine (including their `FifoOrderId`), and expose results.
    Test partial/multiple lots, event ordering, and historical recalculation.
 5. [ ] Tax reports: persisted versioned runs and matches, year/account scope,
    export format, reconciliation with the spreadsheets, and agreed rounding.
@@ -136,7 +153,8 @@ one stage with relevant tests and a documented acceptance check before moving on
    dividend treatment, price data source/licensing, valuation dates, currency,
    and price-return versus total-return benchmark methodology before implementing.
 7. [ ] Later product workflows: broker imports, dividends/withholding, deposits,
-   withdrawals, transfers preserving original lots, and account recovery/lifecycle.
+   withdrawals, transfers preserving original lots, audited trade cancellation,
+   and account recovery/lifecycle.
    Refine their priority when needed by reporting or performance work.
 8. [ ] Production readiness with infra/web: persistent Data Protection keys,
    operational logging, authentication abuse controls, migration/deployment
@@ -163,8 +181,10 @@ not run; unit tests alone are not a full verification result. For documentation-
 changes, check accuracy, paths, and whitespace; a full backend test run is unnecessary.
 
 Migrations live in `src/ZiApp.Infrastructure/Persistence/Migrations`.
-The current chain is `InitialFoundation`, `InitialInvestmentLedger`, then
-`AddIdentityAuthentication`. The model snapshot is not another migration.
+The current chain is `InitialFoundation`, `InitialInvestmentLedger`,
+`AddIdentityAuthentication`, then `AddManualTradeEntry`. The model snapshot is not
+another migration. The newest migration preserves existing data and refuses unsafe
+downgrade when pending-rate trades/correction history exist; use forward migrations.
 
 ```powershell
 dotnet ef migrations add MigrationName --project src/ZiApp.Infrastructure --startup-project src/ZiApp.Api --output-dir Persistence/Migrations

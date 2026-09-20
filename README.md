@@ -72,6 +72,17 @@ See the [portfolio guide](docs/portfolios/portfolio-management.md) for the contr
 archive policy, and acceptance checks. This stage uses the existing migrations;
 there is no new database migration to apply for portfolio management.
 
+## Instruments and manual trades
+
+The [trade-entry guide](docs/trading/manual-trade-entry.md) documents catalog search,
+admin-only catalog additions, owner-scoped buys/sells, fees, audited corrections,
+decimal-string inputs, and pending exchange rates. Trades are not tax-ready yet;
+NBU rate selection is the next backend stage.
+
+Apply `20260920125916_AddManualTradeEntry` using the procedure below before using
+these endpoints. It preserves existing data; no reset is required. Correction
+history and pending-rate trades prevent an unsafe downgrade.
+
 ## Tests
 
 ```powershell

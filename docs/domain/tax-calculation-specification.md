@@ -30,6 +30,12 @@ Every purchase and sale keeps:
 Every split keeps its stable ID, effective timestamp, numerator, and denominator.
 For example, a 5-for-1 split has numerator `5` and denominator `1`.
 
+Manual-entry records may exist with unresolved exchange rates; these are not
+valid tax-calculation inputs and must not be supplied to the calculator with
+placeholder rates. The [trade API](../trading/manual-trade-entry.md) preserves
+submitted numeric timezone offsets and normalized UTC, without deciding the
+eventual NBU calendar-date rule.
+
 Imported timestamps must eventually include the broker timezone and be normalized
 to an absolute instant. Until the import format is defined, the golden tests use
 UTC placeholders while preserving the spreadsheet ordering.
@@ -37,7 +43,11 @@ UTC placeholders while preserving the spreadsheet ordering.
 ## Event ordering and FIFO
 
 All purchases, sales, and splits are processed chronologically. Events with the
-same timestamp are ordered by stable event ID. A sale consumes the oldest open
+same timestamp are ordered by stable event ID. Audited trade replacements retain
+their original `FifoOrderId` for this tie-breaker (the calculator accepts it as an
+optional input, defaulting to the record ID for existing callers). Only current,
+nonsuperseded trades participate. Match records still use actual source record IDs.
+A sale consumes the oldest open
 purchase lot first. A sale spanning lots creates one match per consumed lot, and
 a partially consumed lot remains open with its original FIFO position.
 

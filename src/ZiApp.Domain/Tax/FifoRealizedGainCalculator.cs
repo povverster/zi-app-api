@@ -21,6 +21,7 @@ public static class FifoRealizedGainCalculator
             .Concat(saleList.Select(sale => LedgerEvent.ForSale(sale)))
             .Concat(splitList.Select(split => LedgerEvent.ForSplit(split)))
             .OrderBy(item => item.ExecutedAt)
+            .ThenBy(item => item.FifoOrderId, StringComparer.Ordinal)
             .ThenBy(item => item.Id, StringComparer.Ordinal);
 
         var openLots = new List<OpenLot>();
@@ -209,18 +210,19 @@ public static class FifoRealizedGainCalculator
 
     private sealed record LedgerEvent(
         string Id,
+        string FifoOrderId,
         DateTimeOffset ExecutedAt,
         PurchaseTaxLot? Purchase,
         SaleTaxTransaction? Sale,
         StockSplitEvent? Split)
     {
         public static LedgerEvent ForPurchase(PurchaseTaxLot purchase) =>
-            new(purchase.Id, purchase.ExecutedAt, purchase, null, null);
+            new(purchase.Id, purchase.FifoOrderId ?? purchase.Id, purchase.ExecutedAt, purchase, null, null);
 
         public static LedgerEvent ForSale(SaleTaxTransaction sale) =>
-            new(sale.Id, sale.ExecutedAt, null, sale, null);
+            new(sale.Id, sale.FifoOrderId ?? sale.Id, sale.ExecutedAt, null, sale, null);
 
         public static LedgerEvent ForSplit(StockSplitEvent split) =>
-            new(split.Id, split.ExecutedAt, null, null, split);
+            new(split.Id, split.Id, split.ExecutedAt, null, null, split);
     }
 }

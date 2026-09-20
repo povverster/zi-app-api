@@ -25,6 +25,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
     public DbSet<InvestmentTransaction> InvestmentTransactions => Set<InvestmentTransaction>();
 
+    public DbSet<TradeCorrection> TradeCorrections => Set<TradeCorrection>();
+
     public DbSet<StockSplit> StockSplits => Set<StockSplit>();
 
     public DbSet<TaxCalculationRun> TaxCalculationRuns => Set<TaxCalculationRun>();

@@ -15,6 +15,9 @@ without changing economic ownership.
 ZiApp will use FIFO (first in, first out) as the mandatory tax-lot matching method.
 
 - Purchase lots are ordered by execution timestamp and then by a stable transaction ID.
+  Audited replacements retain the original `FifoOrderId` as this ordering key;
+  their new record IDs identify source values in saved matches. Superseded rows
+  are excluded from current calculations.
 - A sale consumes the oldest available quantity first.
 - Partial fills and sales spanning multiple lots produce explicit match records.
 - A stock or ETF split adjusts lot quantity and per-unit cost while preserving
