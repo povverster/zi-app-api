@@ -11,6 +11,20 @@ Planned work and development instructions are in [AGENTS.md](AGENTS.md).
 
 ### Added
 
+- Super-admin split creation and audited replacement corrections with retained
+  source/actor/time, immutable originals, stable FIFO ordering and paginated history.
+  Shared corporate actions validate affected holdings across all owners, including
+  archived portfolios, without granting access to private portfolios.
+- Owner-only holdings with inclusive historical cutoffs, quantities, open FIFO lots,
+  realized matches, exact decimal-string USD/UAH results and source trade/rate IDs.
+  Pending/unverified rates suppress incomplete financial results; GET never fetches
+  rates or persists reports. Historical projections use current corrected inputs.
+- `AddSplitManagement` forward migration after `AddNbuExchangeRates`, preserving
+  existing split IDs/ratios and protecting new provenance/correction history against
+  downgrade. Apply before using the workflow; no database reset is required.
+- Regression coverage for split precision, rate readiness, historical recalculation,
+  isolation/CSRF, simultaneous trade/split writes, audit history and migration safety.
+
 - Exact-date NBU USD/UAH retrieval and immutable database cache, with original JSON,
   response digest, source URL, calculation date, retrieval time, strict payload
   validation, bounded timeouts/retries, and missing-rate handling without fallback.
@@ -67,6 +81,13 @@ Planned work and development instructions are in [AGENTS.md](AGENTS.md).
 
 ### Changed
 
+- Holdings use the versioned `fifo-uah-v2-remaining-cost` calculator: keep remaining
+  cost/fees through splits and allocate the final remainder on lot exhaustion.
+  The original v1 match calculator and stored historical reports are preserved.
+- Quantity writers coordinate using a shared/exclusive ledger advisory lock before
+  portfolio row locks, including first trades during global split changes. Drain
+  old API writers before upgrading. Holdings use a consistent Repeatable Read snapshot.
+
 - Trade FX links may be null until explicit NBU resolution; statuses distinguish
   Pending, LinkedUnverified, and Resolved, all still not tax-ready.
   Broker IDs are unique per portfolio
@@ -78,6 +99,10 @@ Planned work and development instructions are in [AGENTS.md](AGENTS.md).
 - Standardized text files on LF line endings through Git and editor settings.
 
 ### Fixed
+
+- Reverse-split quantity adjustment multiplies before division, avoiding a rounded
+  split factor that could make three units in a 1-for-3 split insufficient to sell
+  one unit. Positive quantities below decimal precision and overflow fail safely.
 
 - Include timezone data in the Alpine API image for the NBU current-date guard.
   Broker transaction dates themselves are never timezone-converted.

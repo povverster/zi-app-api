@@ -113,8 +113,12 @@ calculator remains covered by its spreadsheet regression tests.
 
 Trade writes use a database transaction and a portfolio row lock while loading,
 validating, and saving. This serializes competing sells/corrections and archive
-updates. Future imports and split mutation workflows must coordinate with this
-same locking boundary. This stage loads the portfolio ledger for validation;
+updates. Since the [split/holdings stage](../holdings/splits-and-holdings.md), trades
+first acquire the shared ledger advisory lock; global split changes acquire its
+exclusive side before any portfolio locks. Future quantity writers must follow
+the same order. Quantity replay excludes superseded splits and uses the same
+multiply-before-division split arithmetic as the v2 holdings calculator.
+This stage loads the portfolio ledger for validation;
 large-scale import/performance work is deferred. See the
 [PostgreSQL locking documentation](https://www.postgresql.org/docs/18/explicit-locking.html)
 and [EF transaction documentation](https://learn.microsoft.com/en-us/ef/core/saving/transactions).
@@ -180,7 +184,9 @@ values; use a forward migration once new data exists. API startup does not migra
 
 The subsequent `20260920191527_AddNbuExchangeRates` migration adds nullable rate
 provenance and resolution audit fields while preserving all existing links and
-inputs. Apply it as well before using the new rate workflow.
+inputs. Apply it as well before using the new rate workflow. The subsequent
+`20261002125349_AddSplitManagement` adds split revision/provenance storage and
+is required by the current trade and holdings readers.
 
 ## Acceptance and verification
 

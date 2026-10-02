@@ -69,6 +69,15 @@ policy version, actor account, and UTC time. Existing links are never overwritte
 or silently certified; correction creates a new pending record and retains the
 old link/history. Resolved does not mean tax-ready. There is no refresh/backfill job.
 
+## Shared split revisions
+
+Shared `StockSplit` records now have a stable FIFO key, original effective-time
+string, actor/time/source provenance, superseded flag and optional previous
+revision/reason. Legacy provenance stays null. Admin-only corrections append a
+replacement without changing instrument or FIFO key. Current projections exclude
+superseded splits; original revisions remain readable. See the
+[split contract](../holdings/splits-and-holdings.md).
+
 ## Numeric storage
 
 ```text
@@ -79,9 +88,11 @@ USD-to-UAH rate               numeric(20, 10)
 
 The HTTP trade contract uses decimal strings and rejects values that exceed the
 storage precision rather than allowing database rounding. The domain continues
-calculating with .NET `decimal` and does not round
-intermediate results. The database scale is a storage boundary, not a reporting
-rounding rule.
+calculating with .NET `decimal` and performs no explicit intermediate rounding;
+its representable precision still limits nonterminating divisions. The database
+scale is a storage boundary, not a reporting rounding rule. V2 holdings return
+unrounded decimal strings and do not persist matches. The report stage must
+review snapshot precision before writing results beyond 12 fractional places.
 
 ## FIFO reproducibility
 
@@ -92,6 +103,10 @@ profit. This permits a historical result to be audited after calculation rules
 change. Corrections do not silently refresh old runs; reporting must detect changed
 inputs and create a new versioned run. The FIFO adapter must pass each active
 trade's `FifoOrderId` while using its actual ID for match provenance.
+The current holdings adapter also passes each active split's stable key and
+uses `fifo-uah-v2-remaining-cost`, preserving remaining lot cost/fees across
+splits and partial sales. Its historical cutoff replays current revisions, not
+the data known at that earlier date. It is not a persisted report or tax-year filter.
 
 The database prevents source trades used by a saved match from being deleted.
 Deleting a calculation run may delete only its own derived match snapshots.
@@ -110,6 +125,11 @@ Deleting a calculation run may delete only its own derived match snapshots.
 - quantities, prices, exchange rates, and split ratios are positive;
 - fees are non-negative;
 - a split numerator and denominator cannot be equal;
+- split provenance is all-null (legacy) or complete; a correction requires
+  previous revision/reason/actor, with restricted previous-split and actor FKs;
+- at most one replacement references a split; at most one active split per
+  instrument/FIFO ordering key. The API rejects duplicate active effective instants
+  under its write lock; old duplicate instants are not removed by migration;
 - a tax match is unique for one run, purchase, and sale combination.
 
 ## Deferred to later stages
@@ -132,8 +152,18 @@ Rollback refuses to discard correction history or unresolved FX entries.
 rewriting old rates or trades. Rollback refuses to discard new NBU provenance
 or resolution history. Prefer forward migrations; no table reset is required.
 
-The API serializes ledger mutation and chronological quantity validation using a
-portfolio row lock and transaction. Later split/import writers must use the same
-boundary. Portfolio archive updates participate through the row's update lock.
+`AddSplitManagement` adds nullable source/correction audit and superseded status,
+backfills split FIFO keys from legacy IDs, and preserves original ratios/times.
+Rollback refuses to erase new provenance or correction history.
+
+Trade writers take a shared transaction-level ledger advisory lock before their
+portfolio row lock. Split writers take its exclusive side, then affected portfolio
+row locks in ID order, validating every owner including archived portfolios.
+This prevents a first trade from appearing after the split writer discovers
+affected portfolios. Future quantity-changing imports/voids/transfers must use
+the same protocol; old API writers must be drained before upgrading.
+Portfolio archive updates participate through the row's update lock.
 Rate resolution fetches outside this lock, then rechecks owner/state/date inside
 it. Concurrent corrections and archives cannot silently acquire a stale assignment.
+Holdings use Repeatable Read for a consistent committed snapshot across their
+portfolio/trade/rate/split queries. GET performs no network access or writes.

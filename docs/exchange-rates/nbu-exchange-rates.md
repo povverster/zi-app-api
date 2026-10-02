@@ -94,7 +94,9 @@ The normal trade contract also exposes the same rate status:
 
 **`isTaxReady` remains false for every status.** No background scheduler, batch
 backfill, or automatic resolution at trade creation is added. Resolve explicitly
-per trade. Current nonsuperseded resolved trades can feed a later FIFO workflow.
+per trade. Current nonsuperseded resolved trades feed the
+[holdings/FIFO workflow](../holdings/splits-and-holdings.md), available as of
+2026-10-02. Rate resolution itself still does not calculate or save a report.
 
 ## Immutability, concurrency, and correction
 

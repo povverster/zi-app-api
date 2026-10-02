@@ -1,11 +1,24 @@
+using ZiApp.Domain.Instruments;
+
 namespace ZiApp.Domain.Tax;
 
 public static class FifoRealizedGainCalculator
 {
+    public const string HoldingsVersion = "fifo-uah-v2-remaining-cost";
+
     public static RealizedGainResult Calculate(
         IEnumerable<PurchaseTaxLot> purchases,
         IEnumerable<SaleTaxTransaction> sales,
-        IEnumerable<StockSplitEvent>? stockSplits = null)
+        IEnumerable<StockSplitEvent>? stockSplits = null) => CalculateCore(purchases, sales, stockSplits, false);
+
+    // Keep the original v1 entry point for historical calculation reproducibility.
+    public static RealizedGainResult CalculateHoldings(
+        IEnumerable<PurchaseTaxLot> purchases,
+        IEnumerable<SaleTaxTransaction> sales,
+        IEnumerable<StockSplitEvent>? stockSplits = null) => CalculateCore(purchases, sales, stockSplits, true);
+
+    private static RealizedGainResult CalculateCore(IEnumerable<PurchaseTaxLot> purchases,
+        IEnumerable<SaleTaxTransaction> sales, IEnumerable<StockSplitEvent>? stockSplits, bool preserveRemainingCost)
     {
         ArgumentNullException.ThrowIfNull(purchases);
         ArgumentNullException.ThrowIfNull(sales);
@@ -31,29 +44,33 @@ public static class FifoRealizedGainCalculator
         {
             if (ledgerEvent.Purchase is not null)
             {
-                openLots.Add(OpenLot.FromPurchase(ledgerEvent.Purchase));
+                openLots.Add(OpenLot.FromPurchase(ledgerEvent.Purchase, preserveRemainingCost));
                 continue;
             }
 
             if (ledgerEvent.Split is not null)
             {
-                ApplySplit(openLots, ledgerEvent.Split);
+                ApplySplit(openLots, ledgerEvent.Split, preserveRemainingCost);
                 continue;
             }
 
-            MatchSale(openLots, ledgerEvent.Sale!, matches);
+            MatchSale(openLots, ledgerEvent.Sale!, matches, preserveRemainingCost);
         }
 
-        return new RealizedGainResult(matches.AsReadOnly());
+        return new RealizedGainResult(matches.AsReadOnly(), !preserveRemainingCost ? [] : openLots.Where(lot => lot.QuantityRemaining > 0m)
+            .Select(lot => new OpenTaxLot(lot.PurchaseLotId, lot.QuantityRemaining,
+                lot.RemainingCostUsd, lot.RemainingCostUsd * lot.PurchaseUsdToUahRate,
+                lot.RemainingFeeUsd, lot.RemainingFeeUsd * lot.PurchaseUsdToUahRate)).ToList().AsReadOnly());
     }
 
     private static void MatchSale(
         IEnumerable<OpenLot> openLots,
         SaleTaxTransaction sale,
-        List<RealizedTaxLotMatch> matches)
+        List<RealizedTaxLotMatch> matches, bool preserveRemainingCost)
     {
         var quantityRemaining = sale.Quantity;
         var saleFeePerUnitUsd = sale.FeeUsd / sale.Quantity;
+        decimal remainingSaleFeeUsd = sale.FeeUsd;
 
         foreach (var lot in openLots)
         {
@@ -68,10 +85,16 @@ public static class FifoRealizedGainCalculator
             }
 
             var matchedQuantity = Math.Min(quantityRemaining, lot.QuantityRemaining);
-            var purchaseCostUsd = lot.UnitCostUsd * matchedQuantity;
+            var purchaseCostUsd = preserveRemainingCost
+                ? Allocate(lot.RemainingCostUsd, matchedQuantity, lot.QuantityRemaining)
+                : lot.UnitCostUsd * matchedQuantity;
             var saleProceedsUsd = sale.UnitPriceUsd * matchedQuantity;
-            var purchaseFeeUsd = lot.PurchaseFeePerUnitUsd * matchedQuantity;
-            var saleFeeUsd = saleFeePerUnitUsd * matchedQuantity;
+            var purchaseFeeUsd = preserveRemainingCost
+                ? Allocate(lot.RemainingFeeUsd, matchedQuantity, lot.QuantityRemaining)
+                : lot.PurchaseFeePerUnitUsd * matchedQuantity;
+            var saleFeeUsd = preserveRemainingCost
+                ? Allocate(remainingSaleFeeUsd, matchedQuantity, quantityRemaining)
+                : saleFeePerUnitUsd * matchedQuantity;
 
             matches.Add(new RealizedTaxLotMatch(
                 lot.PurchaseLotId,
@@ -87,6 +110,12 @@ public static class FifoRealizedGainCalculator
                 saleFeeUsd * sale.UsdToUahRate));
 
             lot.QuantityRemaining -= matchedQuantity;
+            if (preserveRemainingCost)
+            {
+                lot.RemainingCostUsd -= purchaseCostUsd;
+                lot.RemainingFeeUsd -= purchaseFeeUsd;
+                remainingSaleFeeUsd -= saleFeeUsd;
+            }
             quantityRemaining -= matchedQuantity;
         }
 
@@ -97,17 +126,26 @@ public static class FifoRealizedGainCalculator
         }
     }
 
-    private static void ApplySplit(IEnumerable<OpenLot> openLots, StockSplitEvent split)
+    private static void ApplySplit(IEnumerable<OpenLot> openLots, StockSplitEvent split, bool preserveRemainingCost)
     {
         var factor = split.Numerator / split.Denominator;
 
         foreach (var lot in openLots)
         {
+            if (preserveRemainingCost)
+            {
+                if (lot.QuantityRemaining == 0m) { continue; }
+                lot.QuantityRemaining = SplitQuantity.Apply(lot.QuantityRemaining, split.Numerator, split.Denominator);
+                continue;
+            }
             lot.QuantityRemaining *= factor;
             lot.UnitCostUsd /= factor;
             lot.PurchaseFeePerUnitUsd /= factor;
         }
     }
+
+    private static decimal Allocate(decimal total, decimal quantity, decimal remainingQuantity) =>
+        quantity == remainingQuantity ? total : total * quantity / remainingQuantity;
 
     private static void ValidateInputs(
         IEnumerable<PurchaseTaxLot> purchases,
@@ -196,15 +234,21 @@ public static class FifoRealizedGainCalculator
         public decimal PurchaseFeePerUnitUsd { get; set; }
 
         public decimal PurchaseUsdToUahRate { get; }
+        public decimal RemainingCostUsd { get; set; }
+        public decimal RemainingFeeUsd { get; set; }
 
-        public static OpenLot FromPurchase(PurchaseTaxLot purchase)
+        public static OpenLot FromPurchase(PurchaseTaxLot purchase, bool preserveRemainingCost)
         {
             return new OpenLot(
                 purchase.Id,
                 purchase.Quantity,
                 purchase.UnitPriceUsd,
                 purchase.FeeUsd / purchase.Quantity,
-                purchase.UsdToUahRate);
+                purchase.UsdToUahRate)
+            {
+                RemainingCostUsd = preserveRemainingCost ? purchase.Quantity * purchase.UnitPriceUsd : 0m,
+                RemainingFeeUsd = preserveRemainingCost ? purchase.FeeUsd : 0m
+            };
         }
     }
 
@@ -223,6 +267,6 @@ public static class FifoRealizedGainCalculator
             new(sale.Id, sale.FifoOrderId ?? sale.Id, sale.ExecutedAt, null, sale, null);
 
         public static LedgerEvent ForSplit(StockSplitEvent split) =>
-            new(split.Id, split.Id, split.ExecutedAt, null, null, split);
+            new(split.Id, split.FifoOrderId ?? split.Id, split.ExecutedAt, null, null, split);
     }
 }

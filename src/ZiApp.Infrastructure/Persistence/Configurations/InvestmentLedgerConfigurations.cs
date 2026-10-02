@@ -338,6 +338,10 @@ public sealed class StockSplitConfiguration : IEntityTypeConfiguration<StockSpli
             tableBuilder.HasCheckConstraint("ck_stock_splits_numerator", "numerator > 0");
             tableBuilder.HasCheckConstraint("ck_stock_splits_denominator", "denominator > 0");
             tableBuilder.HasCheckConstraint("ck_stock_splits_changes_units", "numerator <> denominator");
+            tableBuilder.HasCheckConstraint("ck_stock_splits_provenance",
+                "(recorded_by_account_id IS NULL AND recorded_at_utc IS NULL AND effective_at_original IS NULL AND source_reference IS NULL) OR (recorded_by_account_id IS NOT NULL AND recorded_at_utc IS NOT NULL AND effective_at_original IS NOT NULL AND source_reference IS NOT NULL)");
+            tableBuilder.HasCheckConstraint("ck_stock_splits_correction",
+                "(previous_split_id IS NULL AND correction_reason IS NULL) OR (previous_split_id IS NOT NULL AND previous_split_id <> id AND correction_reason IS NOT NULL AND recorded_by_account_id IS NOT NULL)");
         });
 
         builder.HasKey(split => split.Id)
@@ -369,6 +373,22 @@ public sealed class StockSplitConfiguration : IEntityTypeConfiguration<StockSpli
 
         builder.HasIndex(split => new { split.InstrumentId, split.EffectiveAtUtc, split.Id })
             .HasDatabaseName("ix_stock_splits_instrument_effective_order");
+        builder.Property(split => split.FifoOrderId).HasColumnName("fifo_order_id").IsRequired();
+        builder.Property(split => split.EffectiveAtOriginal).HasColumnName("effective_at_original").HasMaxLength(32);
+        builder.Property(split => split.RecordedByAccountId).HasColumnName("recorded_by_account_id");
+        builder.Property(split => split.RecordedAtUtc).HasColumnName("recorded_at_utc");
+        builder.Property(split => split.SourceReference).HasColumnName("source_reference").HasMaxLength(1000);
+        builder.Property(split => split.PreviousSplitId).HasColumnName("previous_split_id");
+        builder.Property(split => split.CorrectionReason).HasColumnName("correction_reason").HasMaxLength(1000);
+        builder.Property(split => split.IsSuperseded).HasColumnName("is_superseded");
+        builder.HasOne<UserAccount>().WithMany().HasForeignKey(split => split.RecordedByAccountId)
+            .OnDelete(DeleteBehavior.Restrict).HasConstraintName("fk_stock_splits_recorded_by");
+        builder.HasOne<StockSplit>().WithMany().HasForeignKey(split => split.PreviousSplitId)
+            .OnDelete(DeleteBehavior.Restrict).HasConstraintName("fk_stock_splits_previous");
+        builder.HasIndex(split => split.RecordedByAccountId).HasDatabaseName("ix_stock_splits_recorded_by");
+        builder.HasIndex(split => split.PreviousSplitId).IsUnique().HasDatabaseName("ux_stock_splits_previous");
+        builder.HasIndex(split => new { split.InstrumentId, split.FifoOrderId }).IsUnique()
+            .HasFilter("NOT is_superseded").HasDatabaseName("ux_stock_splits_active_order");
     }
 }
 

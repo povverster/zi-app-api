@@ -99,6 +99,7 @@ public sealed class TradingRepository(ApplicationDbContext db) : ITradingReposit
     {
         ArgumentNullException.ThrowIfNull(decide);
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await LedgerWriteLock.SharedAsync(db, cancellationToken);
         // Parameterized row lock serializes the entire ledger decision with other writes and archive updates.
         var portfolios = await db.Portfolios.FromSqlInterpolated(
             $"SELECT * FROM portfolios WHERE id = {portfolioId} AND owner_account_id = {ownerId} FOR UPDATE")
@@ -112,7 +113,7 @@ public sealed class TradingRepository(ApplicationDbContext db) : ITradingReposit
         var trades = await db.InvestmentTransactions.Where(item => item.PortfolioId == portfolioId).ToListAsync(cancellationToken);
         var instrumentIds = trades.Where(item => !item.IsSuperseded).Select(item => item.InstrumentId)
             .Append(instrumentId).Distinct().ToArray();
-        var splits = await db.StockSplits.AsNoTracking().Where(item => instrumentIds.Contains(item.InstrumentId))
+        var splits = await db.StockSplits.AsNoTracking().Where(item => instrumentIds.Contains(item.InstrumentId) && !item.IsSuperseded)
             .ToListAsync(cancellationToken);
         var decision = decide(new TradeLedger(portfolios[0], instrument, trades, splits));
         if (decision.Value is not { } mutation)

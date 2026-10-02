@@ -80,13 +80,24 @@ Keep all three as separate Git repositories.
 - Corrections append a replacement and audit record, preserving original inputs and
   saved report snapshots. Use only current (not superseded) trades for current results.
   Preserve `FifoOrderId` across corrections and pass it to the FIFO calculator.
-  All future ledger writers must coordinate with the portfolio row-lock transaction.
+  Quantity-changing writers must take the shared ledger advisory lock BEFORE a
+  portfolio row lock; global split writers take its exclusive side before locking
+  affected portfolios in ID order. Future import/transfer/void writers must comply.
 - FIFO is mandatory. Order by broker execution time and the documented stable-ID
   tie-breaker; UUID generation time does not replace trade execution time.
 - Convert purchase amounts/fees at the purchase-date rate and sale amounts/fees at
   the sale-date rate. UAH profit is not USD profit multiplied by one rate.
 - Splits preserve total acquisition cost, allocated purchase fees, and lot order.
   Preserve immutable trade inputs and reproducible, versioned calculation results.
+- Shared instrument splits are readable by active users and writable only by
+  super admins with CSRF. Corrections append revisions, retaining their FIFO key.
+  Validate all affected owners/archived portfolios without exposing private IDs.
+- Holdings use `fifo-uah-v2-remaining-cost`: track remaining lot cost/fees; split
+  quantity is quantity * numerator / denominator, not quantity * rounded factor.
+  Keep the original v1 match entry point intact for historical calculations.
+  Pending/unverified rates suppress an instrument's financials and portfolio totals.
+  A historical cutoff uses current revisions, not what was recorded at that date.
+  Holdings GET uses a consistent snapshot and never fetches rates or saves reports.
 
 ## Design references
 
@@ -97,17 +108,18 @@ Keep all three as separate Git repositories.
 - [Portfolio API contract and acceptance checks](docs/portfolios/portfolio-management.md)
 - [Instrument/trade contract, corrections, and migration](docs/trading/manual-trade-entry.md)
 - [NBU rates, broker-date policy, provenance, and migration](docs/exchange-rates/nbu-exchange-rates.md)
+- [Splits, holdings/FIFO results, concurrency, and migration](docs/holdings/splits-and-holdings.md)
 - [Local setup](README.md) and [CI commands](.github/workflows/ci.yml)
 
-Authentication, portfolios, manual trades, and NBU rate resolution are implemented.
+Authentication, portfolios, manual trades, NBU resolution, splits, and holdings are implemented.
 Use their dedicated guides and current code for HTTP contracts. Filing rules and
 report rounding in the calculation specification still need separate validation.
 
 ## Development progress
 
-Status updated on 2026-09-20 after NBU exchange-rate integration.
-This stage started from commit `7ac3875`; its contract and verification are in the
-[NBU guide](docs/exchange-rates/nbu-exchange-rates.md).
+Status updated on 2026-10-02 after split management and holdings/FIFO results.
+This stage started from commit `6afb970`; its contract and acceptance checks are in
+the [holdings guide](docs/holdings/splits-and-holdings.md).
 
 - [x] Backend foundation: .NET 10 solution and layer references, Swagger/OpenAPI,
   health endpoints, PostgreSQL/EF Core, local migration tooling, Dockerfile,
@@ -143,6 +155,18 @@ This stage started from commit `7ac3875`; its contract and verification are in t
   Docker image build passed; a network-disabled check confirmed timezone data
   and non-root execution. Documentation links, LF endings, and diff checks passed.
 
+- [x] Split management and holdings: admin-only global split creation/correction
+  with provenance and stable ordering; owner-only positions, open lots and FIFO
+  results with historical cutoffs and explicit rate blockers. Archived portfolios
+  participate. Versioned remaining-cost calculation preserves original v1 behavior.
+  Requires `AddSplitManagement`; no reset or user-database migration was performed.
+  PostgreSQL tests cover migration/audit preservation, account isolation, CSRF,
+  concurrent sells/splits and the first-trade locking boundary. See the holdings
+  guide for scope and verification; saved tax reports and UI remain pending.
+  Tooling/locked restore and Release build passed (zero warnings/errors);
+  all 206 tests passed (49 unit, 157 integration, none skipped). EF reports no
+  pending model changes. Changed-file LF, documentation links and diff checks passed.
+
 ## Development steps
 
 Continue with the first unchecked step when asked to run the next step. Complete
@@ -159,12 +183,16 @@ one stage with relevant tests and a documented acceptance check before moving on
    holidays, missing-rate rejection, provenance, retries, and explicit resolution.
    Use broker dates without conversion, even for old records. Preserve source
    inputs, legacy links, and saved reports. No scheduler/batch import is included.
-4. [ ] Split management and holdings/realized-results workflows: persist authorized
-   split events, load current nonsuperseded trades with resolved rates into the FIFO
-   engine (including their `FifoOrderId`), and expose results.
-   Test partial/multiple lots, event ordering, and historical recalculation.
+4. [x] Split management and holdings/realized-results workflows: audited global
+   splits and corrections, private positions/open lots/FIFO matches, resolved-rate
+   checks, current-revision historical cutoffs, and stable ordering. V2 preserves
+   remaining acquisition cost/fees through partial sales and splits. Partial/multiple
+   lots, concurrency, audit retention and migration preservation are tested.
 5. [ ] Tax reports: persisted versioned runs and matches, year/account scope,
    export format, reconciliation with the spreadsheets, and agreed rounding.
+   Preserve the exact input revisions (including splits), selected rates/policies,
+   cutoff and calculator version; review existing numeric(28,12) snapshot storage
+   before saving v2 results with more fractional places. Do not silently round.
    Validate current Ukrainian filing requirements before calling reports filing-ready.
 6. [ ] Performance/statistics and S&P 500 comparison: define cash-flow and
    dividend treatment, price data source/licensing, valuation dates, currency,
@@ -199,10 +227,13 @@ changes, check accuracy, paths, and whitespace; a full backend test run is unnec
 
 Migrations live in `src/ZiApp.Infrastructure/Persistence/Migrations`.
 The current chain is `InitialFoundation`, `InitialInvestmentLedger`,
-`AddIdentityAuthentication`, `AddManualTradeEntry`, then `AddNbuExchangeRates`.
+`AddIdentityAuthentication`, `AddManualTradeEntry`, `AddNbuExchangeRates`, then
+`20261002125349_AddSplitManagement`.
 The model snapshot is not another migration. These upgrades preserve existing data.
 Manual-trade downgrade blocks loss of pending rates/correction history; NBU downgrade
-blocks loss of response provenance/resolution history. Use forward migrations.
+blocks loss of response provenance/resolution history; split downgrade blocks loss
+of split provenance/correction history. Use forward migrations. Drain older API
+writers before running the split stage: all quantity writers must use its new lock.
 
 ```powershell
 dotnet ef migrations add MigrationName --project src/ZiApp.Infrastructure --startup-project src/ZiApp.Api --output-dir Persistence/Migrations

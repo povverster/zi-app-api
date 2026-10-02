@@ -102,6 +102,23 @@ an API key. GET reads cached data/status; CSRF-protected POST fetches/resolves:
 
 No background rate import, cache overwrite, or automatic trade backfill is enabled.
 
+## Splits and holdings
+
+The [split/holdings guide](docs/holdings/splits-and-holdings.md) documents:
+
+- Admin-only shared split creation and audited corrections at
+  `/api/instruments/{instrumentId}/splits`.
+- Owner-only `GET /api/portfolios/{portfolioId}/holdings`, with optional `asOf`,
+  quantities, remaining FIFO lots, realized matches and USD/UAH totals.
+- Explicit PendingRates results instead of incomplete financial totals.
+
+Apply `20261002125349_AddSplitManagement` after `AddNbuExchangeRates`; existing
+data are preserved. Stop older API writers before upgrading because this stage
+introduces shared/exclusive ledger locking for trade/split coordination.
+Split corrections preserve original inputs and saved reports. Historical cutoffs
+use current revisions, not the data known at that date. These calculations use
+`fifo-uah-v2-remaining-cost` and are not saved or filing-ready tax reports.
+
 ## Tests
 
 ```powershell

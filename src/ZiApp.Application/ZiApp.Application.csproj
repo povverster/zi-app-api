@@ -16,6 +16,7 @@
     <Folder Include="Security\" />
     <Folder Include="Trading\" />
     <Folder Include="ExchangeRates\" />
+    <Folder Include="Ledger\" />
     <Compile Update="**\*.cs">
       <Visible>true</Visible>
     </Compile>

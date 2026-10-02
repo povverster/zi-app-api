@@ -1,6 +1,7 @@
 # Tax calculation specification: FIFO UAH realized gains
 
-- Calculation version: `fifo-uah-v1`
+- Original match calculation: `fifo-uah-v1`
+- Current holdings projection: `fifo-uah-v2-remaining-cost` (2026-10-02)
 - Status: Characterized from the supplied spreadsheets
 - Reference workbooks: `IBIT_US.xlsx` and `TLT_US.xlsx`
 
@@ -49,10 +50,12 @@ The spreadsheet golden tests use UTC placeholders while preserving sheet orderin
 ## Event ordering and FIFO
 
 All purchases, sales, and splits are processed chronologically. Events with the
-same timestamp are ordered by stable event ID. Audited trade replacements retain
+same timestamp are ordered by stable event ID. Audited trade and split replacements retain
 their original `FifoOrderId` for this tie-breaker (the calculator accepts it as an
 optional input, defaulting to the record ID for existing callers). Only current,
-nonsuperseded trades participate. Match records still use actual source record IDs.
+nonsuperseded trades and splits participate. The adapter uses canonical D-format
+UUID strings and ordinal comparison, with actual record ID as the final
+tie-breaker. Match records still use actual source record IDs.
 A sale consumes the oldest open
 purchase lot first. A sale spanning lots creates one match per consumed lot, and
 a partially consumed lot remains open with its original FIFO position.
@@ -62,8 +65,8 @@ cannot satisfy an earlier sale.
 
 ## Split handling
 
-For a split factor `f = numerator / denominator`, every open lot is adjusted as
-follows:
+The original v1 calculator uses a split factor `f = numerator / denominator`
+and adjusts each lot as follows:
 
 ```text
 adjusted quantity          = quantity × f
@@ -71,10 +74,12 @@ adjusted unit cost USD     = unit cost USD ÷ f
 adjusted buy fee/unit USD  = buy fee/unit USD ÷ f
 ```
 
-This preserves the lot's total acquisition cost, total allocated purchase fee,
-and FIFO position. Closed quantities are not changed.
+This is intended to preserve total acquisition cost, allocated purchase fee,
+and FIFO position, but a nonterminating factor can accumulate decimal residuals.
+V2 below tracks remaining totals directly instead. Neither version rewrites
+source trades or already produced match records.
 
-## Calculation for one FIFO match
+## Original v1 calculation for one FIFO match
 
 Let:
 
@@ -113,6 +118,33 @@ UAH profit is not USD profit multiplied by a single exchange rate. Purchase
 amounts and purchase fees use the purchase-date rate; sale amounts and sale fees
 use the sale-date rate.
 
+## V2 holdings: remaining-cost allocation
+
+`CalculateHoldings` identifies itself as `fifo-uah-v2-remaining-cost`.
+It begins each lot with quantity, quantity times unit price as remaining USD
+cost, and total USD fee. A split applies
+`remainingQuantity * numerator / denominator` without changing remaining cost
+or fee. Multiplying first avoids turning 3 units in a 1-for-3 split into
+0.999... units. FIFO lot order and purchase-date FX stay unchanged.
+
+For a partial match, allocate `remainingCost * q / remainingQuantity` and
+`remainingFee * q / remainingQuantity`. For final lot consumption, take the
+entire remaining cost/fee rather than multiplying rounded per-unit values.
+Subtract allocated amounts from that lot. Sale fees use the same remaining-fee
+allocation across matches, with the last match taking the remainder.
+Sale proceeds and independent USD/UAH conversions follow the formulas above.
+Open lots expose remaining quantity/cost/fee and purchase FX provenance.
+
+This is a precision-policy change and therefore has a new version. The original
+`Calculate` entry point preserves v1 match behavior and does not expose valued
+open lots. The IBIT/TLT examples are tested under both versions. Saved historical
+reports are not upgraded or rewritten by the holdings endpoint.
+
+The [holdings workflow](../holdings/splits-and-holdings.md) does not pass unresolved
+or unverified FX into this calculator: quantities remain available, but the
+instrument's financial results and portfolio-wide totals are withheld. A cutoff
+uses current revisions effective through that instant, not what was known then.
+
 ## Spreadsheet traceability
 
 The supplied sheets expand purchase and sale batches into unit rows. ZiApp keeps
@@ -145,13 +177,19 @@ that verifies quantity adjustment and preservation of total purchase cost.
 ## Precision, rounding, and reproducibility
 
 All quantities, money, fees, rates, and intermediate results use base-10 decimal
-arithmetic. The calculator does not round intermediate values. A later reporting
+arithmetic. There is no explicit intermediate rounding, but .NET decimal has
+finite precision and cannot represent every fraction exactly. V2 preserves
+remaining USD cost/fee totals through split events and allocates final remainders.
+Overflow or a positive split quantity rounded down to zero is rejected in v2,
+not silently treated as a zero holding. A later reporting
 specification must define display and filing rounding independently; rounded
 display values must never replace stored source values or calculation results.
 
 A generated report must eventually store its calculation version, input event
 IDs, FIFO matches, exchange-rate records, and unrounded results so that it can be
-reproduced after business rules evolve.
+reproduced after business rules evolve. Persist exact split revisions, rate
+selection policies and cutoff too. Existing numeric(28,12) match snapshot columns
+need a precision review before saving v2 results with longer fractional parts.
 
 ## Decisions still required before filing-ready reports
 

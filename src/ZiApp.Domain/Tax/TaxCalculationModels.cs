@@ -22,7 +22,11 @@ public sealed record StockSplitEvent(
     string Id,
     DateTimeOffset ExecutedAt,
     decimal Numerator,
-    decimal Denominator);
+    decimal Denominator,
+    string? FifoOrderId = null);
+
+public sealed record OpenTaxLot(string PurchaseLotId, decimal Quantity,
+    decimal PurchaseCostUsd, decimal PurchaseCostUah, decimal PurchaseFeeUsd, decimal PurchaseFeeUah);
 
 public sealed record RealizedTaxLotMatch(
     string PurchaseLotId,
@@ -52,12 +56,15 @@ public sealed record RealizedTaxLotMatch(
 
 public sealed class RealizedGainResult
 {
-    internal RealizedGainResult(IReadOnlyList<RealizedTaxLotMatch> matches)
+    internal RealizedGainResult(IReadOnlyList<RealizedTaxLotMatch> matches, IReadOnlyList<OpenTaxLot> openLots)
     {
         Matches = matches;
+        OpenLots = openLots;
     }
 
     public IReadOnlyList<RealizedTaxLotMatch> Matches { get; }
+
+    public IReadOnlyList<OpenTaxLot> OpenLots { get; }
 
     public decimal GrossDifferenceUsd => Matches.Sum(match => match.GrossDifferenceUsd);
 

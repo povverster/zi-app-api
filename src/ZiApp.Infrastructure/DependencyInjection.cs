@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 using ZiApp.Application.Accounts;
 using ZiApp.Application.ExchangeRates;
+using ZiApp.Application.Ledger;
 using ZiApp.Application.Portfolios;
 using ZiApp.Application.Trading;
 using ZiApp.Infrastructure.ExchangeRates;
@@ -53,6 +54,8 @@ public static class DependencyInjection
         services.AddScoped<IAccountProvisioningService, AccountProvisioningService>();
         services.AddScoped<IPortfolioRepository, PortfolioRepository>();
         services.AddScoped<ITradingRepository, TradingRepository>();
+        services.AddScoped<ISplitRepository, SplitRepository>();
+        services.AddScoped<IHoldingsRepository, HoldingsRepository>();
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<IExchangeRateRepository, ExchangeRateRepository>();
         services.AddScoped<ITradeRateRepository, TradeRateRepository>();

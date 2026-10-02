@@ -7,14 +7,21 @@ public static class TradeQuantityValidator
 {
     public static bool CanExecute(IEnumerable<InvestmentTransaction> trades, IEnumerable<StockSplit> splits)
     {
+        try { GetHoldings(trades, splits); return true; }
+        catch (InvalidOperationException) { return false; }
+    }
+
+    public static IReadOnlyDictionary<Guid, decimal> GetHoldings(IEnumerable<InvestmentTransaction> trades, IEnumerable<StockSplit> splits)
+    {
         ArgumentNullException.ThrowIfNull(trades);
         ArgumentNullException.ThrowIfNull(splits);
-        var splitList = splits.ToList();
+        var splitList = splits.Where(split => !split.IsSuperseded).ToList();
+        var holdings = new Dictionary<Guid, decimal>();
         foreach (var group in trades.Where(trade => !trade.IsSuperseded).GroupBy(trade => trade.InstrumentId))
         {
             var events = group.Select(trade => new QuantityEvent(trade.FifoOrderId.ToString("D"), trade.ExecutedAtUtc, trade, null))
                 .Concat(splitList.Where(split => split.InstrumentId == group.Key)
-                    .Select(split => new QuantityEvent(split.Id.ToString("D"), split.EffectiveAtUtc, null, split)))
+                    .Select(split => new QuantityEvent(split.FifoOrderId.ToString("D"), split.EffectiveAtUtc, null, split)))
                 .OrderBy(item => item.Time).ThenBy(item => item.Id, StringComparer.Ordinal);
             // Keep individual lots so split rounding matches the FIFO calculator.
             var lots = new List<decimal>();
@@ -22,10 +29,9 @@ public static class TradeQuantityValidator
             {
                 if (item.Split is not null)
                 {
-                    decimal factor = item.Split.Numerator / item.Split.Denominator;
                     for (int i = 0; i < lots.Count; i++)
                     {
-                        lots[i] *= factor;
+                        lots[i] = SplitQuantity.Apply(lots[i], item.Split.Numerator, item.Split.Denominator);
                     }
                 }
                 else if (item.Trade!.Side == TradeSide.Buy)
@@ -44,13 +50,14 @@ public static class TradeQuantityValidator
 
                     if (remaining > 0m)
                     {
-                        return false;
+                        throw new InvalidOperationException("A sale exceeds available holdings.");
                     }
                 }
             }
+            holdings[group.Key] = lots.Sum();
         }
 
-        return true;
+        return holdings;
     }
 
     private sealed record QuantityEvent(string Id, DateTimeOffset Time, InvestmentTransaction? Trade, StockSplit? Split);

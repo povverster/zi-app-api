@@ -36,6 +36,9 @@ public sealed class FifoRealizedGainCalculatorTests
         AssertClose(355.568540m, result.ExpensesUah);
         AssertClose(-190.200000m, result.ProfitUsd);
         AssertClose(-7521.615334m, result.ProfitUah);
+        var holdings = FifoRealizedGainCalculator.CalculateHoldings(purchases, sales);
+        AssertClose(-190.200000m, holdings.ProfitUsd);
+        AssertClose(-7521.615334m, holdings.ProfitUah);
     }
 
     [Fact]
@@ -85,6 +88,9 @@ public sealed class FifoRealizedGainCalculatorTests
         AssertClose(343.950486m, result.ProfitUah);
         Assert.True(result.ProfitUsd < 0m);
         Assert.True(result.ProfitUah > 0m);
+        var holdings = FifoRealizedGainCalculator.CalculateHoldings(purchases, sales);
+        AssertClose(-55.870000m, holdings.ProfitUsd);
+        AssertClose(343.950486m, holdings.ProfitUah);
     }
 
     [Fact]
