@@ -109,6 +109,17 @@ Keep all three as separate Git repositories.
   precision is unchanged. Never add implicit 12-place rounding to calculated results.
   CSV protects user text from formula injection; preserve financial strings end to end.
   Official forms, tax rates/payable, final rounding and account aggregation are not implemented.
+- The first filing research scope is 2025, Ukrainian tax-resident individuals,
+  personal foreign-broker stock/ETF sales only. Research findings are not legal
+  approval. Preserve draft policies and broker dates while legal FX/fee/loss/
+  rounding/form gates remain open; never enable readiness from sample agreement.
+- The user approved a separate taxpayer-year summary including relevant portfolios,
+  external investments and prior-loss claims. Keep one-portfolio drafts unchanged.
+  Next implement only an annual preparation draft, not taxes or official forms.
+  Follow the bounded brief and acceptance cases in the filing-readiness review.
+- Personal spreadsheets in sibling `zi-samples` are read-only references, not CI
+  dependencies or legal authority. Do not copy them into Git. The sample audit
+  records SCHD split/year cases and the user-confirmed BXMT price correction.
 
 ## Design references
 
@@ -121,18 +132,21 @@ Keep all three as separate Git repositories.
 - [NBU rates, broker-date policy, provenance, and migration](docs/exchange-rates/nbu-exchange-rates.md)
 - [Splits, holdings/FIFO results, concurrency, and migration](docs/holdings/splits-and-holdings.md)
 - [Saved draft reports, year scope, provenance, exports, and migration](docs/reports/draft-tax-reports.md)
+- [2025 filing research, open review gates, and next annual-summary stage](docs/reports/ua-2025-filing-readiness.md)
+- [Additional spreadsheet sample audit and correction provenance](docs/domain/spreadsheet-sample-audit.md)
 - [Local setup](README.md) and [CI commands](.github/workflows/ci.yml)
 
 Authentication, portfolios, manual trades, NBU resolution, splits, holdings, and saved
 draft reports are implemented.
-Use their dedicated guides and current code for HTTP contracts. Filing rules and
-report rounding in the calculation specification still need separate validation.
+Use their dedicated guides and current code for HTTP contracts. Filing research
+is documented, but legal validation, annual-summary endpoints and official
+tax/form calculations remain pending.
 
 ## Development progress
 
-Status updated on 2026-10-03 for saved draft reports.
-This stage started from commit `414f27c`; its contract and acceptance checks are in
-the [report guide](docs/reports/draft-tax-reports.md).
+Status updated on 2026-10-03 for filing research and sample review.
+This documentation stage started from commit `3511b9d`. The prior saved-report
+implementation and its checks remain in the [report guide](docs/reports/draft-tax-reports.md).
 
 - [x] Backend foundation: .NET 10 solution and layer references, Swagger/OpenAPI,
   health endpoints, PostgreSQL/EF Core, local migration tooling, Dockerfile,
@@ -192,6 +206,14 @@ the [report guide](docs/reports/draft-tax-reports.md).
   pending model changes. See the report guide for scope and acceptance checks.
   The user's DB was not migrated; frontend implementation remains pending.
 
+- [x] Filing research baseline: user-confirmed 2025 scope, separate annual-summary
+  decision, official-source findings, unresolved legal/form/rounding gates and a
+  bounded implementation brief. Inspected eight added spreadsheets read-only;
+  recorded SCHD split/prior-year cases and the BXMT correction to 18.08 USD.
+  This is documentation/analysis only, not completed legal validation. No runtime,
+  schema, user database or frontend change. Documentation checks are recorded in
+  the research guide; the previous 241 tests were not rerun for this stage.
+
 ## Development steps
 
 Continue with the first unchecked step when asked to run the next step. Complete
@@ -217,13 +239,20 @@ one stage with relevant tests and a documented acceptance check before moving on
    versioned inputs/results, prior-year FIFO consumption, CSV/JSON exports,
    spreadsheet reconciliation, full decimal storage and current-input comparison.
    No filing rounding or taxes payable; all reports remain explicitly drafts.
-6. [ ] Filing-readiness validation: first research current official Ukrainian
-   requirements for the target tax year, document supported income scope, tax-rate
-   effective dates, fee/loss/aggregation treatment and report-level rounding.
-   Confirm choices with the user before implementing official forms/taxes or changing
-   readiness. Preserve existing draft snapshots and one-portfolio scope; any legally
-   required account aggregation is a separate user-approved workflow, not an implicit change.
-   Do not claim legal validation from spreadsheet agreement alone.
+6. [ ] Filing-readiness work, split into bounded stages:
+   - [x] Research baseline and scope decisions for 2025. See the
+     [review and next-stage brief](docs/reports/ua-2025-filing-readiness.md).
+     This does not mean legal validation is complete.
+   - [ ] **Next stage: annual preparation draft API.** Preserve portfolio reports;
+     explicitly select owned report snapshots, record external-coverage inputs and
+     prior-loss claims, protect against known overlap, and save immutable annual
+     drafts with exact decimals and JSON export. Claims do not reduce a tax base.
+     Add isolation/CSRF, coverage, integrity, precision and snapshot-preservation
+     tests. Follow the detailed brief; no tax payable or official form export.
+   - [ ] Close the documented 2025 legal/FX/fee/FIFO/loss/rounding/form review gates
+     and obtain explicit user confirmation before implementing official calculations.
+     Then implement separately versioned policy/form support with reviewed fixtures.
+     Do not change readiness or historical drafts from spreadsheet agreement alone.
 7. [ ] Performance/statistics and S&P 500 comparison: define cash-flow and
    dividend treatment, price data source/licensing, valuation dates, currency,
    and price-return versus total-return benchmark methodology before implementing.

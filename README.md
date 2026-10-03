@@ -140,6 +140,18 @@ preserves existing data and widens calculated match precision. Stop/drain old AP
 writers and back up the confirmed target before applying it. No reset is required.
 CSV financial columns should be imported as text to prevent spreadsheet precision loss.
 
+## Filing-readiness research and next stage
+
+The [2025 review](docs/reports/ua-2025-filing-readiness.md) records official-source
+findings and open legal, FX, fee, loss, rounding and form-version questions.
+The user approved a separate annual preparation summary covering relevant
+portfolios, external investments and prior-loss claims; its API is **not implemented**.
+Existing one-portfolio reports remain unchanged and non-filing-ready.
+
+The [sample audit](docs/domain/spreadsheet-sample-audit.md) records eight read-only
+spreadsheets and the confirmed BXMT correction. Personal sample files are not
+repository/CI dependencies. This research stage adds no migration or runtime change.
+
 ## Tests
 
 ```powershell

@@ -3,7 +3,9 @@
 - Original match calculation: `fifo-uah-v1`
 - Current holdings and saved draft reports: `fifo-uah-v2-remaining-cost`
 - Status: Characterized from the supplied spreadsheets
-- Reference workbooks: `IBIT_US.xlsx` and `TLT_US.xlsx`
+- Original reference workbooks: `IBIT_US.xlsx` and `TLT_US.xlsx`
+- Additional samples reviewed on 2026-10-03: see the
+  [sample audit](spreadsheet-sample-audit.md). They are not all automated fixtures.
 
 ## Purpose and scope
 
@@ -170,9 +172,13 @@ because fees are allocated pro rata by quantity.
 The TLT case is an important regression check: its USD result is negative while
 its UAH result is positive because the transaction-date exchange rates differ.
 
-The supplied workbooks have split factor `1` for every purchase, so they do not
-contain a real split example. The automated tests add a synthetic 5-for-1 split
-that verifies quantity adjustment and preservation of total purchase cost.
+The original IBIT/TLT workbooks have split factor `1` for every purchase, so those
+two do not contain a real split example. The automated tests add a synthetic
+5-for-1 split that verifies quantity adjustment and preservation of total cost.
+The newly supplied SCHD sample includes factor `3` and prior-year sales; its
+split-event provenance and batch reconstruction still need verification before
+adding an end-to-end fixture. See the sample audit, including the user's BXMT
+purchase-price correction to `18.08 USD`.
 
 ## Precision, rounding, and reproducibility
 
@@ -200,6 +206,13 @@ Policy `full-decimal-no-filing-rounding-v1` deliberately does not specify final
 filing rounding, tax rates/payable or legal loss treatment. Reports remain drafts.
 
 ## Decisions still required before filing-ready reports
+
+The [2025 filing-readiness review](../reports/ua-2025-filing-readiness.md) is the
+current record of official-source findings and unresolved review gates.
+The user confirmed 2025, Ukrainian tax-resident personal foreign-broker stock/ETF
+sales and a separate annual summary. These choices do not legally validate the
+current draft calculation, fee deductions or FIFO scope. One-portfolio snapshots
+stay unchanged; external inputs and prior-loss claims belong in the separate workflow.
 
 - broker import formats, source offset interpretation for absolute ordering, and
   deterministic same-timestamp import IDs (without shifting broker rate dates);

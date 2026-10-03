@@ -11,6 +11,13 @@ Planned work and development instructions are in [AGENTS.md](AGENTS.md).
 
 ### Added
 
+- A 2025 Ukrainian filing-readiness research baseline with official sources,
+  user-confirmed scope, unresolved validation gates and the approved separate
+  annual-summary design. Research does not enable tax payable or filing readiness.
+- Read-only audit of eight additional spreadsheet samples, including SCHD's split
+  and year selection and the user-confirmed BXMT purchase-price correction.
+  No runtime, database migration or source-workbook change in this documentation stage.
+
 - Owner-only saved draft tax reports for one portfolio and broker calendar year,
   replaying prior FIFO history while totaling only that year's sales. Archived
   portfolios are supported; missing verified rates block creation without partial rows.

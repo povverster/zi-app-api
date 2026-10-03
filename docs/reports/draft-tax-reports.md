@@ -6,6 +6,11 @@ These are investment realized-gain worksheets, not official Ukrainian filings.
 They do not calculate tax payable or apply tax rates, carryforward rules,
 dividend/withholding rules, or filing/display rounding.
 
+Follow-up research on 2026-10-03 is in the
+[2025 filing-readiness review](ua-2025-filing-readiness.md). The user approved a
+separate annual summary; no annual-summary endpoint or official tax calculation
+has been implemented. The one-portfolio contract below is unchanged.
+
 ## Contract and access
 
 All endpoints require an active signed-in portfolio owner, including when the
@@ -221,8 +226,9 @@ local documentation links and whitespace checks passed across all three reposito
 Only disposable test databases were migrated; the user's database was untouched.
 No new frontend code, deployment or commit was performed.
 
-Official filing readiness is a separate next step: validate legal scope and
-year-specific rules, agree report-level rounding and supported filing/export
-formats, and review reconciliation before changing `isTaxReady`. No legal
-certification, tax rates, automatic submission, account aggregation, frontend
-screens or commits are included in this stage.
+Official filing readiness remains a separate gated workflow. The research guide
+records the agreed scope, source findings and unresolved rules. The next code
+stage is a separate annual preparation draft, with no tax payable or accepted loss
+deduction. Legal validation and official forms remain later work; `isTaxReady`
+stays false. The implementation checks above belong to the saved-report stage,
+not the subsequent documentation-only research review.
