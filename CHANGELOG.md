@@ -11,6 +11,20 @@ Planned work and development instructions are in [AGENTS.md](AGENTS.md).
 
 ### Added
 
+- Owner-only saved draft tax reports for one portfolio and broker calendar year,
+  replaying prior FIFO history while totaling only that year's sales. Archived
+  portfolios are supported; missing verified rates block creation without partial rows.
+- Immutable, versioned JSON input/result snapshots, exact split/rate provenance,
+  integrity digests, paginated report history, current-input comparison and CSV/JSON
+  downloads. Creation uses a consistent database snapshot; corrections never rewrite
+  older reports. CSV protects user-controlled text against formula injection.
+- `AddDraftTaxReports` migration after `AddSplitManagement`, preserving existing runs
+  and source data. Apply before using reports; no reset is needed. Downgrade protects
+  saved snapshots and calculated values that cannot safely return to numeric(28,12).
+- Report regression tests for annual spreadsheet reconciliation, broker-year/legacy
+  dates, prior-year lot consumption, precision, isolation/CSRF, snapshot retention,
+  CSV safety, migration guards and simultaneous ledger corrections.
+
 - Super-admin split creation and audited replacement corrections with retained
   source/actor/time, immutable originals, stable FIFO ordering and paginated history.
   Shared corporate actions validate affected holdings across all owners, including
@@ -80,6 +94,11 @@ Planned work and development instructions are in [AGENTS.md](AGENTS.md).
   and an `AGENTS.md` guide with development milestones and changelog maintenance rules.
 
 ### Changed
+
+- Calculated report match columns now use unconstrained PostgreSQL `numeric` to
+  retain .NET decimal results without extra database rounding; source input precision
+  is unchanged. Reports remain drafts, without tax payable, official forms or filing
+  rounding. Legacy runs without full snapshots are preserved, not reconstructed.
 
 - Holdings use the versioned `fifo-uah-v2-remaining-cost` calculator: keep remaining
   cost/fees through splits and allocate the final remainder on lot exhaustion.

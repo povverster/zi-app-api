@@ -213,7 +213,8 @@ pending model changes. Changed-file LF, local documentation links and whitespace
 checks passed across all three repositories. No user-database migration/reset,
 frontend implementation, deployment or commit was performed.
 
-The next backend stage is saved versioned tax reports. Scope, input snapshots,
-export/reconciliation and report rounding must be agreed there; current results
-are not filing-ready. Prices, unrealized gains, performance benchmarks and UI
-screens are not implemented by this stage.
+Saved versioned draft reports are now available in the
+[report guide](../reports/draft-tax-reports.md): one portfolio/year, captured inputs,
+CSV/JSON exports and full calculated precision. Neither holdings nor those drafts
+are filing-ready; official rules and final rounding require a separate validation
+stage. Prices, unrealized gains, performance benchmarks and UI screens remain pending.

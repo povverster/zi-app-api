@@ -119,6 +119,27 @@ Split corrections preserve original inputs and saved reports. Historical cutoffs
 use current revisions, not the data known at that date. These calculations use
 `fifo-uah-v2-remaining-cost` and are not saved or filing-ready tax reports.
 
+## Saved draft tax reports
+
+The [report guide](docs/reports/draft-tax-reports.md) describes saved reports for
+one portfolio and broker calendar year, including prior-year FIFO lot consumption,
+full-precision USD/UAH results and the exact source inputs/rates/splits used.
+
+- `POST /api/portfolios/{portfolioId}/tax-reports` with `{ "taxYear": 2025 }`
+  saves a draft; requires the portfolio owner's active session and CSRF token.
+- GET the same collection for history, or `/{id}` for a saved report.
+- GET `/{id}/current-status` to detect changed inputs without updating the report.
+- GET `/{id}/export?format=csv` or `json` to download saved results.
+
+Resolve all included trade rates first. Corrections never change existing reports;
+generate another draft to capture revised data. All reports have `isTaxReady: false`:
+official forms, taxes payable and final filing rounding are not included.
+
+Apply `20261002140835_AddDraftTaxReports` after `AddSplitManagement`. The migration
+preserves existing data and widens calculated match precision. Stop/drain old API
+writers and back up the confirmed target before applying it. No reset is required.
+CSV financial columns should be imported as text to prevent spreadsheet precision loss.
+
 ## Tests
 
 ```powershell

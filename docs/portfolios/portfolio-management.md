@@ -2,7 +2,8 @@
 
 Implemented on 2026-09-07. This stage adds account-scoped portfolio management.
 The [instrument/trade API](../trading/manual-trade-entry.md) followed on 2026-09-20;
-tax-report generation remains a later stage.
+[saved draft reports](../reports/draft-tax-reports.md) are available as of 2026-10-03.
+Official filing rules and final rounding remain a separate validation stage.
 
 ## Access and ownership
 

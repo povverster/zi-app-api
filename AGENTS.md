@@ -98,6 +98,17 @@ Keep all three as separate Git repositories.
   Pending/unverified rates suppress an instrument's financials and portfolio totals.
   A historical cutoff uses current revisions, not what was recorded at that date.
   Holdings GET uses a consistent snapshot and never fetches rates or saves reports.
+- Saved reports cover one portfolio and one broker calendar year, including archived
+  owned portfolios. Replay preceding FIFO history, but total only that year's sales.
+  Keep legacy broker dates unchanged. All included replay trades require verified FX.
+- Reports are immutable drafts, always `isTaxReady: false`. Preserve the exact input
+  trade/split/rate revisions, provenance, policy versions and full decimal results.
+  GET/export reads the saved snapshot; current-status compares inputs without rewriting it.
+  Creation uses Repeatable Read and atomically saves the snapshot and match rows.
+- Calculated report match values use unconstrained PostgreSQL `numeric`; source
+  precision is unchanged. Never add implicit 12-place rounding to calculated results.
+  CSV protects user text from formula injection; preserve financial strings end to end.
+  Official forms, tax rates/payable, final rounding and account aggregation are not implemented.
 
 ## Design references
 
@@ -109,17 +120,19 @@ Keep all three as separate Git repositories.
 - [Instrument/trade contract, corrections, and migration](docs/trading/manual-trade-entry.md)
 - [NBU rates, broker-date policy, provenance, and migration](docs/exchange-rates/nbu-exchange-rates.md)
 - [Splits, holdings/FIFO results, concurrency, and migration](docs/holdings/splits-and-holdings.md)
+- [Saved draft reports, year scope, provenance, exports, and migration](docs/reports/draft-tax-reports.md)
 - [Local setup](README.md) and [CI commands](.github/workflows/ci.yml)
 
-Authentication, portfolios, manual trades, NBU resolution, splits, and holdings are implemented.
+Authentication, portfolios, manual trades, NBU resolution, splits, holdings, and saved
+draft reports are implemented.
 Use their dedicated guides and current code for HTTP contracts. Filing rules and
 report rounding in the calculation specification still need separate validation.
 
 ## Development progress
 
-Status updated on 2026-10-02 after split management and holdings/FIFO results.
-This stage started from commit `6afb970`; its contract and acceptance checks are in
-the [holdings guide](docs/holdings/splits-and-holdings.md).
+Status updated on 2026-10-03 for saved draft reports.
+This stage started from commit `414f27c`; its contract and acceptance checks are in
+the [report guide](docs/reports/draft-tax-reports.md).
 
 - [x] Backend foundation: .NET 10 solution and layer references, Swagger/OpenAPI,
   health endpoints, PostgreSQL/EF Core, local migration tooling, Dockerfile,
@@ -162,10 +175,22 @@ the [holdings guide](docs/holdings/splits-and-holdings.md).
   Requires `AddSplitManagement`; no reset or user-database migration was performed.
   PostgreSQL tests cover migration/audit preservation, account isolation, CSRF,
   concurrent sells/splits and the first-trade locking boundary. See the holdings
-  guide for scope and verification; saved tax reports and UI remain pending.
+  guide for scope and verification; saved reports follow below and UI remains pending.
   Tooling/locked restore and Release build passed (zero warnings/errors);
   all 206 tests passed (49 unit, 157 integration, none skipped). EF reports no
   pending model changes. Changed-file LF, documentation links and diff checks passed.
+
+- [x] Saved draft report API: one portfolio/year, full-history FIFO with broker-year
+  selection, immutable source/provenance snapshots, versioned matches and full-precision
+  USD/UAH totals, paginated history, current-input comparison, and CSV/JSON downloads.
+  Includes owner/CSRF checks, rate blockers, archived portfolios, integrity checks,
+  legacy-run handling, spreadsheet reconciliation and concurrent-correction tests.
+  Requires `AddDraftTaxReports`; computed matches retain .NET decimal precision.
+  Official filing rules, tax payable and final rounding are deliberately deferred.
+  Tooling/locked restore and Release build passed with zero warnings/errors;
+  all 241 tests passed (59 unit, 182 integration, none skipped). EF reports no
+  pending model changes. See the report guide for scope and acceptance checks.
+  The user's DB was not migrated; frontend implementation remains pending.
 
 ## Development steps
 
@@ -188,20 +213,25 @@ one stage with relevant tests and a documented acceptance check before moving on
    checks, current-revision historical cutoffs, and stable ordering. V2 preserves
    remaining acquisition cost/fees through partial sales and splits. Partial/multiple
    lots, concurrency, audit retention and migration preservation are tested.
-5. [ ] Tax reports: persisted versioned runs and matches, year/account scope,
-   export format, reconciliation with the spreadsheets, and agreed rounding.
-   Preserve the exact input revisions (including splits), selected rates/policies,
-   cutoff and calculator version; review existing numeric(28,12) snapshot storage
-   before saving v2 results with more fractional places. Do not silently round.
-   Validate current Ukrainian filing requirements before calling reports filing-ready.
-6. [ ] Performance/statistics and S&P 500 comparison: define cash-flow and
+5. [x] Saved draft reports: user-approved one-portfolio/year scope, immutable
+   versioned inputs/results, prior-year FIFO consumption, CSV/JSON exports,
+   spreadsheet reconciliation, full decimal storage and current-input comparison.
+   No filing rounding or taxes payable; all reports remain explicitly drafts.
+6. [ ] Filing-readiness validation: first research current official Ukrainian
+   requirements for the target tax year, document supported income scope, tax-rate
+   effective dates, fee/loss/aggregation treatment and report-level rounding.
+   Confirm choices with the user before implementing official forms/taxes or changing
+   readiness. Preserve existing draft snapshots and one-portfolio scope; any legally
+   required account aggregation is a separate user-approved workflow, not an implicit change.
+   Do not claim legal validation from spreadsheet agreement alone.
+7. [ ] Performance/statistics and S&P 500 comparison: define cash-flow and
    dividend treatment, price data source/licensing, valuation dates, currency,
    and price-return versus total-return benchmark methodology before implementing.
-7. [ ] Later product workflows: broker imports, dividends/withholding, deposits,
+8. [ ] Later product workflows: broker imports, dividends/withholding, deposits,
    withdrawals, transfers preserving original lots, audited trade cancellation,
    and account recovery/lifecycle.
    Refine their priority when needed by reporting or performance work.
-8. [ ] Production readiness with infra/web: persistent Data Protection keys,
+9. [ ] Production readiness with infra/web: persistent Data Protection keys,
    operational logging, authentication abuse controls, migration/deployment
    procedure, backups/restore, and an end-to-end acceptance test.
 
@@ -228,11 +258,14 @@ changes, check accuracy, paths, and whitespace; a full backend test run is unnec
 Migrations live in `src/ZiApp.Infrastructure/Persistence/Migrations`.
 The current chain is `InitialFoundation`, `InitialInvestmentLedger`,
 `AddIdentityAuthentication`, `AddManualTradeEntry`, `AddNbuExchangeRates`, then
-`20261002125349_AddSplitManagement`.
+`20261002125349_AddSplitManagement`, then `20261002140835_AddDraftTaxReports`.
 The model snapshot is not another migration. These upgrades preserve existing data.
 Manual-trade downgrade blocks loss of pending rates/correction history; NBU downgrade
 blocks loss of response provenance/resolution history; split downgrade blocks loss
-of split provenance/correction history. Use forward migrations. Drain older API
+of split provenance/correction history. Draft-report downgrade refuses to erase
+saved snapshots or coerce calculated matches back to numeric(28,12) with data loss.
+Use forward migrations and a controlled schema window, backing up the confirmed target.
+Drain older API
 writers before running the split stage: all quantity writers must use its new lock.
 
 ```powershell

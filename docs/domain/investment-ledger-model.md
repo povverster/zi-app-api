@@ -81,18 +81,20 @@ superseded splits; original revisions remain readable. See the
 ## Numeric storage
 
 ```text
-quantity and split ratios     numeric(28, 12)
-USD and UAH amounts           numeric(28, 12)
+source quantity/split ratios  numeric(28, 12)
+source USD prices/fees        numeric(28, 12)
 USD-to-UAH rate               numeric(20, 10)
+calculated match values      numeric (unconstrained)
 ```
 
 The HTTP trade contract uses decimal strings and rejects values that exceed the
 storage precision rather than allowing database rounding. The domain continues
 calculating with .NET `decimal` and performs no explicit intermediate rounding;
 its representable precision still limits nonterminating divisions. The database
-scale is a storage boundary, not a reporting rounding rule. V2 holdings return
-unrounded decimal strings and do not persist matches. The report stage must
-review snapshot precision before writing results beyond 12 fractional places.
+scale is a source storage boundary, not a reporting rounding rule. V2 holdings
+return decimal strings and do not persist matches. Saved draft reports preserve
+all calculated .NET decimal digits in unconstrained numeric match columns and
+JSON decimal strings, with no additional database or filing rounding.
 
 ## FIFO reproducibility
 
@@ -100,16 +102,24 @@ Every `TaxCalculationRun` identifies its portfolio, tax year, calculation versio
 and creation time. Its `TaxLotMatchSnapshot` records the purchase, sale, matched
 quantity, source amounts, allocated fees, differences, expenses, and final USD/UAH
 profit. This permits a historical result to be audited after calculation rules
-change. Corrections do not silently refresh old runs; reporting must detect changed
-inputs and create a new versioned run. The FIFO adapter must pass each active
+change. Corrections do not refresh old runs; the report current-status endpoint
+detects changed inputs, and an explicit POST creates a new run. The FIFO adapter must pass each active
 trade's `FifoOrderId` while using its actual ID for match provenance.
 The current holdings adapter also passes each active split's stable key and
 uses `fifo-uah-v2-remaining-cost`, preserving remaining lot cost/fees across
 splits and partial sales. Its historical cutoff replays current revisions, not
 the data known at that earlier date. It is not a persisted report or tax-year filter.
 
+The [report API](../reports/draft-tax-reports.md) adds a self-contained JSON snapshot,
+schema version, input digest and snapshot digest to each new run. It records exact
+trade/split revisions, rate provenance, policy versions, selected broker year and
+results under a Repeatable Read transaction. Old runs without this metadata remain
+untouched and return `LegacySnapshotUnavailable` for details/exports.
+All new reports cover one portfolio/year and remain non-filing-ready drafts.
+
 The database prevents source trades used by a saved match from being deleted.
-Deleting a calculation run may delete only its own derived match snapshots.
+The schema cascades a deleted run only to its derived matches, but the report API
+has no delete or update operation. Source snapshots are never refreshed in place.
 
 ## Database invariants
 
@@ -130,7 +140,9 @@ Deleting a calculation run may delete only its own derived match snapshots.
 - at most one replacement references a split; at most one active split per
   instrument/FIFO ordering key. The API rejects duplicate active effective instants
   under its write lock; old duplicate instants are not removed by migration;
-- a tax match is unique for one run, purchase, and sale combination.
+- a tax match is unique for one run, purchase, and sale combination;
+- report snapshot metadata is all-null (legacy) or complete, with uppercase
+  64-character SHA-256 fields; the application checks snapshot integrity on reads.
 
 ## Deferred to later stages
 
@@ -138,7 +150,7 @@ Deleting a calculation run may delete only its own derived match snapshots.
 - audited complete trade cancellation/voiding;
 - audited handling of future NBU revisions and optional batch rate resolution;
 - dividends, withholding taxes, deposits, withdrawals, and transfers;
-- tax-report generation and official filing/display rounding;
+- official filing rules/forms, taxes payable, and filing/display rounding;
 - market prices, benchmarks, performance statistics, and S&P 500 comparison.
 
 ## Manual-entry migration and concurrency
@@ -155,6 +167,11 @@ or resolution history. Prefer forward migrations; no table reset is required.
 `AddSplitManagement` adds nullable source/correction audit and superseded status,
 backfills split FIFO keys from legacy IDs, and preserves original ratios/times.
 Rollback refuses to erase new provenance or correction history.
+
+`AddDraftTaxReports` adds nullable snapshot metadata and widens calculated match
+columns without rewriting source values or fabricating legacy snapshots.
+Rollback refuses to erase saved drafts or round/overflow values when narrowing
+back to numeric(28,12). Use a backed-up, controlled migration window.
 
 Trade writers take a shared transaction-level ledger advisory lock before their
 portfolio row lock. Split writers take its exclusive side, then affected portfolio

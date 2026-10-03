@@ -8,6 +8,7 @@ using ZiApp.Api.Health;
 using ZiApp.Application.ExchangeRates;
 using ZiApp.Application.Ledger;
 using ZiApp.Application.Portfolios;
+using ZiApp.Application.Reports;
 using ZiApp.Application.Security;
 using ZiApp.Application.Trading;
 using ZiApp.Domain.Accounts;
@@ -25,6 +26,7 @@ builder.Services.AddScoped<ExchangeRateService>();
 builder.Services.AddScoped<TradeRateService>();
 builder.Services.AddScoped<SplitService>();
 builder.Services.AddScoped<HoldingsService>();
+builder.Services.AddScoped<TaxReportService>();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {

@@ -403,6 +403,8 @@ public sealed class TaxCalculationRunConfiguration : IEntityTypeConfiguration<Ta
             tableBuilder.HasCheckConstraint(
                 "ck_tax_calculation_runs_tax_year",
                 "tax_year BETWEEN 2000 AND 9999");
+            tableBuilder.HasCheckConstraint("ck_tax_calculation_runs_snapshot",
+                "(report_schema_version IS NULL AND input_sha256 IS NULL AND snapshot_sha256 IS NULL AND snapshot_json IS NULL) OR (report_schema_version IS NOT NULL AND input_sha256 IS NOT NULL AND snapshot_sha256 IS NOT NULL AND snapshot_json IS NOT NULL AND input_sha256 ~ '^[0-9A-F]{64}$' AND snapshot_sha256 ~ '^[0-9A-F]{64}$')");
         });
 
         builder.HasKey(run => run.Id)
@@ -424,6 +426,10 @@ public sealed class TaxCalculationRunConfiguration : IEntityTypeConfiguration<Ta
         builder.Property(run => run.CreatedAtUtc)
             .HasColumnName("created_at_utc")
             .IsRequired();
+        builder.Property(run => run.ReportSchemaVersion).HasColumnName("report_schema_version").HasMaxLength(100);
+        builder.Property(run => run.InputSha256).HasColumnName("input_sha256").HasMaxLength(64);
+        builder.Property(run => run.SnapshotSha256).HasColumnName("snapshot_sha256").HasMaxLength(64);
+        builder.Property(run => run.SnapshotJson).HasColumnName("snapshot_json").HasColumnType("text");
 
         builder.HasOne(run => run.Portfolio)
             .WithMany()
@@ -466,7 +472,7 @@ public sealed class TaxLotMatchSnapshotConfiguration : IEntityTypeConfiguration<
             .IsRequired();
         builder.Property(match => match.MatchedQuantity)
             .HasColumnName("matched_quantity")
-            .HasPrecision(28, 12)
+            .HasColumnType("numeric")
             .IsRequired();
 
         ConfigureAmount(builder, match => match.PurchaseCostUsd, "purchase_cost_usd");
@@ -521,7 +527,7 @@ public sealed class TaxLotMatchSnapshotConfiguration : IEntityTypeConfiguration<
     {
         builder.Property(property)
             .HasColumnName(columnName)
-            .HasPrecision(28, 12)
+            .HasColumnType("numeric")
             .IsRequired();
     }
 }

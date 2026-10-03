@@ -32,7 +32,7 @@ public sealed class HoldingsService(ICurrentAccount account, IHoldingsRepository
         {
             var trades = group.ToDictionary(t => t.Id);
             var splits = ledger.Splits.Where(s => s.InstrumentId == group.Key).OrderBy(s => s.EffectiveAtUtc).ThenBy(s => s.FifoOrderId).ToList();
-            var blockers = group.Where(t => !HasVerifiedRate(t)).OrderBy(t => t.ExecutedAtUtc).ThenBy(t => t.FifoOrderId)
+            var blockers = group.Where(t => !TradeRatePolicy.HasVerifiedRate(t)).OrderBy(t => t.ExecutedAtUtc).ThenBy(t => t.FifoOrderId)
                 .Select(t => new RateBlocker(t.Id, t.ExchangeRateId is null ? "Pending" : "LinkedUnverified")).ToList();
             if (blockers.Count > 0)
             {
@@ -66,10 +66,4 @@ public sealed class HoldingsService(ICurrentAccount account, IHoldingsRepository
             positions, complete ? GainTotals.From(allMatches) : null);
     }
 
-    private static bool HasVerifiedRate(InvestmentTransaction trade) =>
-        trade.ExchangeRate is { CurrencyCode: "USD", Source: NbuRateSource.Key, ResponseSha256: not null } rate
-        && trade.ExchangeRatePolicy == TradeRatePolicy.VersionFor(trade)
-        && trade.ExchangeRateSelectedDate == TradeRatePolicy.SelectDate(trade)
-        && trade.ExchangeRateSelectedDate == rate.EffectiveDate
-        && trade.ExchangeRateResolvedAtUtc is not null && trade.ExchangeRateResolvedByAccountId is not null;
 }

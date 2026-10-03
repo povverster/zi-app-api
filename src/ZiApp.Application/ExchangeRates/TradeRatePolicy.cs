@@ -45,4 +45,11 @@ public static class TradeRatePolicy
         if (SelectDate(trade) is null) { return RateError.InvalidOriginalTimestamp; }
         return null;
     }
+
+    public static bool HasVerifiedRate(InvestmentTransaction trade) =>
+        trade.ExchangeRate is { CurrencyCode: "USD", Source: NbuRateSource.Key, ResponseSha256: not null } rate
+        && trade.ExchangeRatePolicy == VersionFor(trade)
+        && trade.ExchangeRateSelectedDate == SelectDate(trade)
+        && trade.ExchangeRateSelectedDate == rate.EffectiveDate
+        && trade.ExchangeRateResolvedAtUtc is not null && trade.ExchangeRateResolvedByAccountId is not null;
 }

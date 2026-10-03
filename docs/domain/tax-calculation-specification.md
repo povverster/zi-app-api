@@ -1,7 +1,7 @@
 # Tax calculation specification: FIFO UAH realized gains
 
 - Original match calculation: `fifo-uah-v1`
-- Current holdings projection: `fifo-uah-v2-remaining-cost` (2026-10-02)
+- Current holdings and saved draft reports: `fifo-uah-v2-remaining-cost`
 - Status: Characterized from the supplied spreadsheets
 - Reference workbooks: `IBIT_US.xlsx` and `TLT_US.xlsx`
 
@@ -185,11 +185,19 @@ not silently treated as a zero holding. A later reporting
 specification must define display and filing rounding independently; rounded
 display values must never replace stored source values or calculation results.
 
-A generated report must eventually store its calculation version, input event
-IDs, FIFO matches, exchange-rate records, and unrounded results so that it can be
-reproduced after business rules evolve. Persist exact split revisions, rate
-selection policies and cutoff too. Existing numeric(28,12) match snapshot columns
-need a precision review before saving v2 results with longer fractional parts.
+The [saved draft report contract](../reports/draft-tax-reports.md), implemented
+2026-10-03, stores calculation/year/precision versions, exact input trade/split/rate
+revisions and provenance, replay cutoff, FIFO matches and unrounded results.
+Calculated match columns use unconstrained PostgreSQL numeric, avoiding a second
+rounding to 12 fractional places. Source input precision is unchanged.
+
+The user chose one portfolio per annual report. Sales are selected by the original
+broker calendar year (legacy dates unchanged); preceding trades and splits replay
+in UTC order to consume earlier FIFO lots. Only selected-year sales enter totals.
+Saved JSON is authoritative and immutable through the API; current-input comparison
+is separate from reads/exports. CSV/JSON retain full calculated precision.
+Policy `full-decimal-no-filing-rounding-v1` deliberately does not specify final
+filing rounding, tax rates/payable or legal loss treatment. Reports remain drafts.
 
 ## Decisions still required before filing-ready reports
 
