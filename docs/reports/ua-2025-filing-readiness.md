@@ -94,10 +94,12 @@ Retain the existing `fifo-uah-v2-remaining-cost` and
 snapshots as validated. A future legal-policy version requires reviewed fixtures
 and explicit user confirmation before official tax/form implementation.
 
-## Next implementation stage: annual preparation drafts
+## Annual preparation draft implementation brief
 
-This is an implementation brief, **not an existing API contract**. Implement one
-bounded backend stage next, with tests, migration review and documentation.
+This brief was implemented as the bounded backend stage completed on 2026-10-04.
+The [annual preparation contract](annual-preparation-drafts.md) now defines the
+endpoints, limits, migration and tests. The brief below preserves its design
+intent; it is not evidence that the legal review gates above have been closed.
 
 ### Scope and preserved inputs
 
@@ -140,7 +142,7 @@ bounded backend stage next, with tests, migration review and documentation.
   signature, submission or silent legal-readiness transition.
 - Provide save/list/get and full-precision JSON export in the next contract.
   Keep read/export deterministic from the snapshot; track changes to current
-  source coverage separately. Do not invent those endpoint paths in clients yet.
+  source coverage separately. Use the linked annual contract for client paths.
 - Backend owns arithmetic and access checks. Web foundation remains a separate
   pending stage; no frontend tax calculator or new infrastructure service is needed.
 

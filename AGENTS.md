@@ -108,15 +108,19 @@ Keep all three as separate Git repositories.
 - Calculated report match values use unconstrained PostgreSQL `numeric`; source
   precision is unchanged. Never add implicit 12-place rounding to calculated results.
   CSV protects user text from formula injection; preserve financial strings end to end.
-  Official forms, tax rates/payable, final rounding and account aggregation are not implemented.
+  Official forms, tax rates/payable and final filing rounding are not implemented.
 - The first filing research scope is 2025, Ukrainian tax-resident individuals,
   personal foreign-broker stock/ETF sales only. Research findings are not legal
   approval. Preserve draft policies and broker dates while legal FX/fee/loss/
   rounding/form gates remain open; never enable readiness from sample agreement.
 - The user approved a separate taxpayer-year summary including relevant portfolios,
   external investments and prior-loss claims. Keep one-portfolio drafts unchanged.
-  Next implement only an annual preparation draft, not taxes or official forms.
-  Follow the bounded brief and acceptance cases in the filing-readiness review.
+  Annual preparation drafts are implemented separately for 2025: explicit owned
+  report IDs, compatible policy tuples, signed exact subtotals, external coverage
+  and unverified loss claims. Claims do not reduce subtotals. Require explicit
+  coverage/overlap review; unknown amounts stay null and readiness stays false.
+  Preserve immutable snapshots and keep current-source status separate. Follow
+  the annual contract; legal validation remains a later explicitly confirmed stage.
 - Personal spreadsheets in sibling `zi-samples` are read-only references, not CI
   dependencies or legal authority. Do not copy them into Git. The sample audit
   records SCHD split/year cases and the user-confirmed BXMT price correction.
@@ -132,21 +136,20 @@ Keep all three as separate Git repositories.
 - [NBU rates, broker-date policy, provenance, and migration](docs/exchange-rates/nbu-exchange-rates.md)
 - [Splits, holdings/FIFO results, concurrency, and migration](docs/holdings/splits-and-holdings.md)
 - [Saved draft reports, year scope, provenance, exports, and migration](docs/reports/draft-tax-reports.md)
-- [2025 filing research, open review gates, and next annual-summary stage](docs/reports/ua-2025-filing-readiness.md)
+- [Annual preparation drafts, coverage, exact sums and migration](docs/reports/annual-preparation-drafts.md)
+- [2025 filing research and open review gates](docs/reports/ua-2025-filing-readiness.md)
 - [Additional spreadsheet sample audit and correction provenance](docs/domain/spreadsheet-sample-audit.md)
 - [Local setup](README.md) and [CI commands](.github/workflows/ci.yml)
 
 Authentication, portfolios, manual trades, NBU resolution, splits, holdings, and saved
-draft reports are implemented.
+draft reports and separate annual preparation drafts are implemented.
 Use their dedicated guides and current code for HTTP contracts. Filing research
-is documented, but legal validation, annual-summary endpoints and official
-tax/form calculations remain pending.
+is documented, but legal validation and official tax/form calculations remain pending.
 
 ## Development progress
 
-Status updated on 2026-10-03 for filing research and sample review.
-This documentation stage started from commit `3511b9d`. The prior saved-report
-implementation and its checks remain in the [report guide](docs/reports/draft-tax-reports.md).
+Status updated on 2026-10-04 for annual preparation drafts, starting from
+`2534ca8`. Prior saved-report checks remain in the [report guide](docs/reports/draft-tax-reports.md).
 
 - [x] Backend foundation: .NET 10 solution and layer references, Swagger/OpenAPI,
   health endpoints, PostgreSQL/EF Core, local migration tooling, Dockerfile,
@@ -214,6 +217,20 @@ implementation and its checks remain in the [report guide](docs/reports/draft-ta
   schema, user database or frontend change. Documentation checks are recorded in
   the research guide; the previous 241 tests were not rerun for this stage.
 
+- [x] Owner-only 2025 annual drafts with explicit report selection, hashes/policies,
+  signed exact subtotals, external-coverage inputs, unverified prior-loss claims,
+  overlap checks, immutable JSON export and separate current-source status.
+  Requires `20261003152645_AddAnnualPreparationDrafts`; downgrade protects saved
+  annual snapshots. Existing portfolio reports and user database were not changed.
+  BND/BNDX/corrected-BXMT regressions run through both report APIs; source workbooks
+  remain read-only and are not CI dependencies. See the annual guide for limits.
+  Tooling/locked restore and Release build passed with zero warnings/errors;
+  all 294 tests passed (93 unit, 201 integration, none skipped), using disposable DBs.
+  EF reports no pending model changes. Changed-file LF, local documentation links
+  and whitespace checks passed across all three repositories.
+  Frontend code, official taxes/forms, accepted loss deductions and filing readiness
+  remain unimplemented.
+
 ## Development steps
 
 Continue with the first unchecked step when asked to run the next step. Complete
@@ -243,13 +260,12 @@ one stage with relevant tests and a documented acceptance check before moving on
    - [x] Research baseline and scope decisions for 2025. See the
      [review and next-stage brief](docs/reports/ua-2025-filing-readiness.md).
      This does not mean legal validation is complete.
-   - [ ] **Next stage: annual preparation draft API.** Preserve portfolio reports;
-     explicitly select owned report snapshots, record external-coverage inputs and
-     prior-loss claims, protect against known overlap, and save immutable annual
-     drafts with exact decimals and JSON export. Claims do not reduce a tax base.
-     Add isolation/CSRF, coverage, integrity, precision and snapshot-preservation
-     tests. Follow the detailed brief; no tax payable or official form export.
-   - [ ] Close the documented 2025 legal/FX/fee/FIFO/loss/rounding/form review gates
+   - [x] Annual preparation draft API: explicit owned snapshots, external coverage,
+     prior-loss claims, known-overlap protection, exact signed subtotals, immutable
+     JSON exports and separate current-source status. Owner/admin isolation, CSRF,
+     integrity, precision, source corrections and migration preservation are tested.
+     See the [annual contract](docs/reports/annual-preparation-drafts.md).
+   - [ ] **Next stage: close the documented 2025 legal/FX/fee/FIFO/loss/rounding/form review gates**
      and obtain explicit user confirmation before implementing official calculations.
      Then implement separately versioned policy/form support with reviewed fixtures.
      Do not change readiness or historical drafts from spreadsheet agreement alone.
@@ -287,12 +303,14 @@ changes, check accuracy, paths, and whitespace; a full backend test run is unnec
 Migrations live in `src/ZiApp.Infrastructure/Persistence/Migrations`.
 The current chain is `InitialFoundation`, `InitialInvestmentLedger`,
 `AddIdentityAuthentication`, `AddManualTradeEntry`, `AddNbuExchangeRates`, then
-`20261002125349_AddSplitManagement`, then `20261002140835_AddDraftTaxReports`.
+`20261002125349_AddSplitManagement`, then `20261002140835_AddDraftTaxReports`,
+then `20261003152645_AddAnnualPreparationDrafts`.
 The model snapshot is not another migration. These upgrades preserve existing data.
 Manual-trade downgrade blocks loss of pending rates/correction history; NBU downgrade
 blocks loss of response provenance/resolution history; split downgrade blocks loss
 of split provenance/correction history. Draft-report downgrade refuses to erase
 saved snapshots or coerce calculated matches back to numeric(28,12) with data loss.
+Annual-preparation downgrade refuses to erase any saved annual snapshot.
 Use forward migrations and a controlled schema window, backing up the confirmed target.
 Drain older API
 writers before running the split stage: all quantity writers must use its new lock.

@@ -58,6 +58,7 @@ public static class DependencyInjection
         services.AddScoped<ISplitRepository, SplitRepository>();
         services.AddScoped<IHoldingsRepository, HoldingsRepository>();
         services.AddScoped<ITaxReportRepository, TaxReportRepository>();
+        services.AddScoped<IAnnualSummaryRepository, AnnualSummaryRepository>();
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<IExchangeRateRepository, ExchangeRateRepository>();
         services.AddScoped<ITradeRateRepository, TradeRateRepository>();

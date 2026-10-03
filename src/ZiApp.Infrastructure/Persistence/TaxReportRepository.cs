@@ -53,7 +53,9 @@ public sealed class TaxReportRepository(ApplicationDbContext db, TimeProvider cl
 
     public async Task<ReportResult<ReportCurrentStatus>> CurrentStatusAsync(Guid ownerId, Guid portfolioId, Guid id, CancellationToken cancellationToken)
     {
-        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
+        // Annual status composes these reads inside its own consistent snapshot.
+        await using var transaction = db.Database.CurrentTransaction is null
+            ? await db.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken) : null;
         var run = await FindAsync(ownerId, portfolioId, id, cancellationToken);
         if (run is null) { return new(null, ReportError.NotFound); }
         var saved = ReportSnapshot.Read(run);

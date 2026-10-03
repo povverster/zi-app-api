@@ -31,6 +31,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
     public DbSet<TaxCalculationRun> TaxCalculationRuns => Set<TaxCalculationRun>();
 
+    public DbSet<AnnualPreparationDraft> AnnualPreparationDrafts => Set<AnnualPreparationDraft>();
+
     public DbSet<TaxLotMatchSnapshot> TaxLotMatchSnapshots => Set<TaxLotMatchSnapshot>();
 
     protected override void OnModelCreating(ModelBuilder builder)

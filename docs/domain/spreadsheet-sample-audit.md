@@ -80,6 +80,17 @@ Excel recalculation session, legal audit or execution of the application's tests
 Shared-formula/cached cells were not treated as proof of new native recalculation.
 No fixtures were added to the automated suite in this documentation stage.
 
+### Follow-up implementation, 2026-10-04
+
+The [annual preparation stage](../reports/annual-preparation-drafts.md) added
+numerical BND, BNDX and corrected-BXMT fixtures to `AnnualSummaryApiTests`.
+Both report APIs reconcile their UAH subtotals and the combined signed
+`-757.558884` subtotal. The BXMT correction remains explicit; the original
+workbook has not been changed. Synthetic timestamp offsets encode fixture
+ordering only, not real broker timezone evidence. This adds neither live NBU
+verification nor legal validation. SCHD still needs independent split-event
+provenance and complete batch reconstruction before an end-to-end claim.
+
 SHA-256 fingerprints identify the inspected files, not current broker truth.
 Recheck when files change. Excel `~$` lock files are not workbooks and are excluded.
 

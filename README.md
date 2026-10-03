@@ -140,17 +140,26 @@ preserves existing data and widens calculated match precision. Stop/drain old AP
 writers and back up the confirmed target before applying it. No reset is required.
 CSV financial columns should be imported as text to prevent spreadsheet precision loss.
 
-## Filing-readiness research and next stage
+## Annual preparation drafts and filing-readiness limits
 
 The [2025 review](docs/reports/ua-2025-filing-readiness.md) records official-source
 findings and open legal, FX, fee, loss, rounding and form-version questions.
-The user approved a separate annual preparation summary covering relevant
-portfolios, external investments and prior-loss claims; its API is **not implemented**.
-Existing one-portfolio reports remain unchanged and non-filing-ready.
+The separate [annual preparation API](docs/reports/annual-preparation-drafts.md)
+is implemented for 2025. POST `/api/annual-summaries` with explicit owned report
+IDs, reviewed coverage/overlap confirmations, external inputs and prior-loss
+claims. GET history, `/{id}`, `/{id}/export` (JSON) and `/{id}/current-status`.
+Existing one-portfolio reports remain unchanged. Both workflows are drafts:
+no official tax payable, accepted loss deduction or filing form is implemented.
+
+Apply `20261003152645_AddAnnualPreparationDrafts` after `AddDraftTaxReports`
+before using these endpoints. It adds a separate snapshot table without changing
+existing data; downgrade protects saved drafts. Your local database is not
+automatically migrated by application startup or the automated test suite.
 
 The [sample audit](docs/domain/spreadsheet-sample-audit.md) records eight read-only
 spreadsheets and the confirmed BXMT correction. Personal sample files are not
-repository/CI dependencies. This research stage adds no migration or runtime change.
+repository/CI dependencies. The annual stage includes transcribed numerical
+BND/BNDX/BXMT regressions without modifying or importing the workbooks.
 
 ## Tests
 

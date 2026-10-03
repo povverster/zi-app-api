@@ -11,6 +11,19 @@ Planned work and development instructions are in [AGENTS.md](AGENTS.md).
 
 ### Added
 
+- Separate owner-only 2025 annual preparation drafts: explicitly selected portfolio
+  reports, preserved hashes/policies, exact signed subtotals, external-coverage
+  inputs and unverified prior-loss claims. Unknown is distinct from zero; loss
+  claims do not reduce results and every draft remains non-filing-ready.
+- Immutable annual snapshots, paginated history, exact JSON downloads, separate
+  current-source comparisons, compatible-policy and known-overlap checks, bounded
+  inputs and arithmetic that rejects overflow or precision loss.
+- `AddAnnualPreparationDrafts` migration after `AddDraftTaxReports`. It preserves
+  existing data and refuses a downgrade that would erase annual drafts.
+- Annual API/account-isolation/CSRF/integrity/correction/migration tests and BND,
+  BNDX and corrected-BXMT sample regressions. Source workbooks remain untouched;
+  there is no new frontend, tax-payable calculation or official form.
+
 - A 2025 Ukrainian filing-readiness research baseline with official sources,
   user-confirmed scope, unresolved validation gates and the approved separate
   annual-summary design. Research does not enable tax payable or filing readiness.
