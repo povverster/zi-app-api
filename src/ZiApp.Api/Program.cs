@@ -28,6 +28,7 @@ builder.Services.AddScoped<SplitService>();
 builder.Services.AddScoped<HoldingsService>();
 builder.Services.AddScoped<TaxReportService>();
 builder.Services.AddScoped<AnnualSummaryService>();
+builder.Services.AddScoped<ConfiguredTaxService>();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {

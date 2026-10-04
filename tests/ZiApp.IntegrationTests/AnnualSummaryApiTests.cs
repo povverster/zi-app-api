@@ -289,6 +289,17 @@ public sealed class AnnualSummaryApiTests(ApiFixture fixture) : IClassFixture<Ap
         Assert.Equal("0", annual.ExternalProfitSubtotalUah);
         Assert.False(annual.IsTaxReady);
         Assert.Equal(3, annual.SourceReports.Count);
+        using var ratesResponse = await owner.PostAsync("/api/tax-settings/2025", new SaveTaxSettingsInput("18", "5", "9"));
+        var rates = await ReadAsync<TaxSettingsDetails>(ratesResponse, HttpStatusCode.Created);
+        foreach (var source in new[] { bnd, bndx, bxmt })
+        {
+            using var configuredResponse = await owner.PostAsync($"/api/portfolios/{source.PortfolioId}/configured-tax-reports",
+                new CreateConfiguredTaxReportInput(source.Id, rates.Id));
+            var configured = await ReadAsync<ConfiguredTaxDocument>(configuredResponse, HttpStatusCode.Created);
+            Assert.Equal(source.Totals.ProfitUah, configured.Amounts.LossUah);
+            Assert.Equal(source.Totals.ProfitUah, configured.Amounts.NetProfitUah);
+            Assert.Equal("0.00", configured.Amounts.TotalTaxUah);
+        }
     }
 
     [Theory]

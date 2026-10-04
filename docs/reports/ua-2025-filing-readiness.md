@@ -1,5 +1,17 @@
 # Ukrainian 2025 filing-readiness review
 
+## Product clarification, 2026-10-04: not a blocker for configurable reports
+
+The user clarified that the immediate goal is a spreadsheet-based calculation
+tool using configurable rates for a selected year, not an officially validated
+declaration form. The [configured-report contract](configured-tax-reports.md)
+now implements that scope, preserving signed losses and zero taxes on losses.
+The preceding review-package request was superseded by this clarification.
+Do not require a specialist review or keep repeating research before allowing
+user-configured calculations. The legal gates below concern **official statutory
+policy/form support only**; they remain open without blocking the product roadmap.
+The historical research statements below describe their original bounded stage.
+
 Research and product decisions recorded on 2026-10-03.
 Status: **research baseline complete; legal validation and filing implementation
 remain open**. This document is not a tax opinion or an official declaration.
@@ -34,7 +46,7 @@ prove the exact consolidated legislation or form applicable to a historical year
 
 | Topic | Finding | Consequence for this app |
 | --- | --- | --- |
-| Rates | DPS explicitly lists 18% general PIT and 5% military levy for 2025, subject to exceptions. [2026 campaign rates](https://www.tax.gov.ua/deklaratsiyna-kampaniya-2026/stavki-podatku-na-dohodi-fizichnih-osib-ta-viyskovogo-zboru) | Record separately by tax year. Do not multiply each portfolio's profit by 23% or enable a tax calculator merely because rates are known. |
+| Rates | DPS explicitly lists 18% general PIT and 5% military levy for 2025, subject to exceptions. [2026 campaign rates](https://www.tax.gov.ua/deklaratsiyna-kampaniya-2026/stavki-podatku-na-dohodi-fizichnih-osib-ta-viyskovogo-zboru) | Record separately by tax year. Known rates alone do not certify a statutory tax base or form. The later user-configured calculator explicitly captures selected rates and is not statutory certification. |
 | Effective period | DPS distinguishes annual 2024 income from annual 2025 income for military levy. [Transition guidance](https://tax.gov.ua/nove-pro-podatki--novini-/856165.html) | A historical report must never inherit today's default rate. |
 | Annual result | Sections 170.2.1/170.2.6 describe taxpayer-level annual investment results, eligible gain/loss netting and negative-result carryforward. [Tax Code, official DPS mirror](https://tax.gov.ua/nk/rozdil-iv--podatok-na-dohodi-fizichnih-o/) | Portfolio totals are inputs to preparation, not separate final tax liabilities. Prior-loss eligibility cannot be inferred from an old draft's negative total. |
 | Evidence and restrictions | Sections 170.2.2, 170.2.4-170.2.8 address documented acquisition costs, loss restrictions, exchange-related distinctions/exceptions and exemptions. [Tax Code](https://tax.gov.ua/nk/rozdil-iv--podatok-na-dohodi-fizichnih-o/) | Require evidence and reviewed classification. Listing exchange, execution venue and eligibility are not interchangeable. Do not mechanically import a US wash-sale rule. |

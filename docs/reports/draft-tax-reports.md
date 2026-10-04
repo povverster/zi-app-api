@@ -12,6 +12,12 @@ separate annual summary. Its [preparation API](annual-preparation-drafts.md) is
 implemented as of 2026-10-04; official tax calculations remain unimplemented.
 The one-portfolio contract below is unchanged.
 
+As of 2026-10-04, a separate [configured tax report](configured-tax-reports.md)
+can use one of these drafts with explicitly saved same-year percentage settings.
+It adds tax amounts and a signed loss field without altering this draft API,
+its historical snapshots or precision policy. Specialist review is not a
+prerequisite for that user-configured workflow; official filing forms remain separate.
+
 ## Contract and access
 
 All endpoints require an active signed-in portfolio owner, including when the

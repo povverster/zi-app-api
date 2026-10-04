@@ -207,6 +207,16 @@ filing rounding, tax rates/payable or legal loss treatment. Reports remain draft
 
 ## Decisions still required before filing-ready reports
 
+The user's 2026-10-04 clarification separates those future official-filing
+decisions from the implemented [user-configured report](../reports/configured-tax-reports.md).
+That report retains the signed annual net result and a negative loss field,
+uses max(net, 0) only as the percentage-calculation base, applies explicitly
+selected same-year rates, and rounds each final tax to two places half away
+from zero. A loss of -10000 stays visible while taxes are 0.00. The original
+FIFO/full-precision snapshots are unchanged. Dividends and carryforward
+deductions remain deferred; specialist review is not a blocker for configurable
+arithmetic. Its rounding convention is not asserted to be official form policy.
+
 The [2025 filing-readiness review](../reports/ua-2025-filing-readiness.md) is the
 current record of official-source findings and unresolved review gates.
 The user confirmed 2025, Ukrainian tax-resident personal foreign-broker stock/ETF

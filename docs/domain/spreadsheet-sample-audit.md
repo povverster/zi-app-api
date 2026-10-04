@@ -92,6 +92,16 @@ verification nor legal validation. SCHD still needs independent split-event
 provenance and complete batch reconstruction before an end-to-end claim.
 
 SHA-256 fingerprints identify the inspected files, not current broker truth.
+
+The 2026-10-04 [configured tax report](../reports/configured-tax-reports.md) stage
+also runs BND/BNDX/corrected-BXMT through the configured-report API: each negative
+subtotal remains a negative loss, with taxes 0.00. Unit tests apply the configured
+18/5 percentages to audited TLT/SCHD subtotals (79.11/1755.67 UAH combined taxes,
+each component rounded separately). This is percentage-arithmetic coverage,
+not a new end-to-end SCHD ledger reconstruction or legal validation.
+BND/BNDX/TLT were re-inspected read-only with unchanged fingerprints and no
+formula-error cells; BXMT/SCHD fingerprints were also checked unchanged.
+
 Recheck when files change. Excel `~$` lock files are not workbooks and are excluded.
 
 | File | SHA-256 |

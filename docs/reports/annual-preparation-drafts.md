@@ -1,5 +1,11 @@
 # Annual preparation drafts
 
+The separate [configured portfolio tax report](configured-tax-reports.md), added
+2026-10-04, applies user-entered yearly rates to one portfolio's saved net result.
+It does not change this annual preparation contract or apply its external amounts
+and prior-loss claims. Do not add portfolio tax amounts together and present the
+sum as a taxpayer-wide bill; this API still retains signed preparation subtotals.
+
 Implemented as a bounded backend stage on 2026-10-04. This prepares the
 user-approved 2025 Ukrainian personal foreign-broker stock/ETF-sales scope; it is
 **not an official tax return or validated tax base**. The [filing review](ua-2025-filing-readiness.md)

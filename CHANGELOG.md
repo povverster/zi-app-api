@@ -11,6 +11,22 @@ Planned work and development instructions are in [AGENTS.md](AGENTS.md).
 
 ### Added
 
+- Cross-repository handoff for the completed web foundation and the next
+  authentication UI stage. API contracts, code and migrations are unchanged by
+  this frontend-stage documentation update; real browser login/CSRF tests follow.
+
+- User-configurable income, military and reserved dividend percentages per
+  account/year, with append-only settings revisions and no implicit historical defaults.
+- Saved one-portfolio/year configured reports with positive-net tax calculations,
+  separate final-rounded taxes, signed losses (including -10000 with zero taxes),
+  full source/settings snapshots, JSON/CSV exports and current-source comparisons.
+- `AddConfiguredTaxReports` additive migration, guarded downgrade, and regression
+  tests for rates/years, losses, precision, access/CSRF, snapshots and sample results.
+  Existing draft/annual preparation APIs remain unchanged; dividend calculations
+  and official forms are not enabled. The user's database was not migrated.
+- Updated cross-repository handoff: user-configured reporting does not require
+  the previously proposed specialist review; frontend foundation is the next stage.
+
 - Separate owner-only 2025 annual preparation drafts: explicitly selected portfolio
   reports, preserved hashes/policies, exact signed subtotals, external-coverage
   inputs and unverified prior-loss claims. Unknown is distinct from zero; loss

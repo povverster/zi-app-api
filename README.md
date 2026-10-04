@@ -161,6 +161,36 @@ spreadsheets and the confirmed BXMT correction. Personal sample files are not
 repository/CI dependencies. The annual stage includes transcribed numerical
 BND/BNDX/BXMT regressions without modifying or importing the workbooks.
 
+## Development handoff
+
+For current development state and the exact next stage, read [AGENTS.md](AGENTS.md).
+
+## Configurable yearly tax reports
+
+The [configured-report guide](docs/reports/configured-tax-reports.md) documents
+private yearly rates and saved tax/loss reports based on the existing FIFO drafts.
+For example, enter income 18%, military 5% and dividend 9% for a chosen year.
+These are your settings, not automatic legal defaults; historical years keep
+their own rates. Dividend calculations are deferred; the rate is stored only.
+
+1. POST `/api/tax-settings/{year}` with the three percentage strings.
+2. Save a portfolio draft for that year using `/api/portfolios/{id}/tax-reports`.
+3. POST `/api/portfolios/{id}/configured-tax-reports` with its `sourceReportId`
+   and the returned `settingsId`; read/export the saved JSON or CSV.
+
+A net loss of -10000 UAH remains visible as `lossUah: "-10000"`, with both
+taxes and total `"0.00"`. On positive net profit, each tax is rounded to two
+places; source FIFO values stay unchanged. Rate edits append revisions and never
+rewrite old reports. Official filing forms are not part of this workflow.
+
+Apply `20261004144649_AddConfiguredTaxReports` after `AddAnnualPreparationDrafts`.
+No existing data reset is needed. This task did not migrate your local database.
+There is currently no frontend settings/report screen; use Swagger/API until
+the web implementation reaches this workflow. The [web foundation](../zi-app-web/README.md)
+now runs on localhost:5173 and proxies API/health requests to port 5050.
+It has an overview, three languages and explicit connection checks, not login
+or investment-data screens. Authentication UI with real cookie/CSRF testing is next.
+
 ## Tests
 
 ```powershell

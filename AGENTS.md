@@ -101,18 +101,22 @@ Keep all three as separate Git repositories.
 - Saved reports cover one portfolio and one broker calendar year, including archived
   owned portfolios. Replay preceding FIFO history, but total only that year's sales.
   Keep legacy broker dates unchanged. All included replay trades require verified FX.
-- Reports are immutable drafts, always `isTaxReady: false`. Preserve the exact input
+- Original FIFO reports are immutable drafts, always `isTaxReady: false`. Preserve the exact input
   trade/split/rate revisions, provenance, policy versions and full decimal results.
   GET/export reads the saved snapshot; current-status compares inputs without rewriting it.
   Creation uses Repeatable Read and atomically saves the snapshot and match rows.
 - Calculated report match values use unconstrained PostgreSQL `numeric`; source
   precision is unchanged. Never add implicit 12-place rounding to calculated results.
   CSV protects user text from formula injection; preserve financial strings end to end.
-  Official forms, tax rates/payable and final filing rounding are not implemented.
+  These original drafts do not apply rates. Separate user-configured reports now
+  apply explicit year-specific settings, without changing draft precision or data.
+  Official forms/statutory-policy certification remain unimplemented.
 - The first filing research scope is 2025, Ukrainian tax-resident individuals,
   personal foreign-broker stock/ETF sales only. Research findings are not legal
   approval. Preserve draft policies and broker dates while legal FX/fee/loss/
-  rounding/form gates remain open; never enable readiness from sample agreement.
+  rounding/form gates remain open; never enable official readiness from sample
+  agreement. The user clarified on 2026-10-04 that these legal gates must not block
+  the user-configured calculation tool. The review-package request was superseded.
 - The user approved a separate taxpayer-year summary including relevant portfolios,
   external investments and prior-loss claims. Keep one-portfolio drafts unchanged.
   Annual preparation drafts are implemented separately for 2025: explicit owned
@@ -121,6 +125,25 @@ Keep all three as separate Git repositories.
   coverage/overlap review; unknown amounts stay null and readiness stays false.
   Preserve immutable snapshots and keep current-source status separate. Follow
   the annual contract; legal validation remains a later explicitly confirmed stage.
+- User-configured tax reports select an owned portfolio draft and an owned
+  same-year settings revision. Years 2000 through current UTC year are supported;
+  no implicit current-rate fallback for historical years. Settings are private,
+  append-only, shared across an account's portfolios and explicitly selected.
+- Keep the signed annual net result and a separate negative `lossUah` field.
+  User-confirmed example: `-10000` loss, income/military/total taxes `0.00`.
+  Only the percentage-calculation base is floored at zero, never the reported loss.
+  Apply each configured rate to positive annual net profit, round each final tax
+  to 2 places half away from zero, then add rounded taxes. Preserve full source
+  precision. See `positive-annual-net-configured-rates-v1` and its contract.
+- The user's example percentages are income 18, military 5, dividends 9; they
+  are explicit user inputs, not seeded statutory defaults. Save the dividend
+  rate but do not use it: the user chose sales now, dividend calculations later.
+  New reports are `UserConfigured` / `isTaxReady: false` with dividends
+  `NotIncluded`. No withholding, carryforward deduction or official form is implied.
+- Keep configured-report snapshots/exports immutable through rate/source changes.
+  A new report gets a new UUIDv7 ID. Current-status is a separate observation.
+  Do not sum per-portfolio tax amounts into a taxpayer-wide bill; the separate
+  annual preparation API still only preserves signed subtotals and unverified claims.
 - Personal spreadsheets in sibling `zi-samples` are read-only references, not CI
   dependencies or legal authority. Do not copy them into Git. The sample audit
   records SCHD split/year cases and the user-confirmed BXMT price correction.
@@ -137,19 +160,24 @@ Keep all three as separate Git repositories.
 - [Splits, holdings/FIFO results, concurrency, and migration](docs/holdings/splits-and-holdings.md)
 - [Saved draft reports, year scope, provenance, exports, and migration](docs/reports/draft-tax-reports.md)
 - [Annual preparation drafts, coverage, exact sums and migration](docs/reports/annual-preparation-drafts.md)
+- [User-configured yearly tax settings, signed losses, reports and continuation](docs/reports/configured-tax-reports.md)
 - [2025 filing research and open review gates](docs/reports/ua-2025-filing-readiness.md)
 - [Additional spreadsheet sample audit and correction provenance](docs/domain/spreadsheet-sample-audit.md)
 - [Local setup](README.md) and [CI commands](.github/workflows/ci.yml)
 
 Authentication, portfolios, manual trades, NBU resolution, splits, holdings, and saved
-draft reports and separate annual preparation drafts are implemented.
-Use their dedicated guides and current code for HTTP contracts. Filing research
-is documented, but legal validation and official tax/form calculations remain pending.
+draft reports, separate annual preparation drafts and year-specific configured
+tax reports are implemented. Use the dedicated guides/current code for contracts.
+The user's configurable reporting workflow is not blocked on specialist review;
+official statutory policy/forms remain optional later scope.
 
 ## Development progress
 
-Status updated on 2026-10-04 for annual preparation drafts, starting from
-`2534ca8`. Prior saved-report checks remain in the [report guide](docs/reports/draft-tax-reports.md).
+Status updated on 2026-10-05: the sibling web foundation is implemented and the
+next shared stage is authentication UI. The configured-report stage started from
+API `626233c`, web `05a4810` and infra `4ed9c45`; preserve that completed work.
+Prior-stage backend checks below are historical. The frontend stage changed only
+backend documentation, not API code or the user's database.
 
 - [x] Backend foundation: .NET 10 solution and layer references, Swagger/OpenAPI,
   health endpoints, PostgreSQL/EF Core, local migration tooling, Dockerfile,
@@ -233,6 +261,28 @@ Status updated on 2026-10-04 for annual preparation drafts, starting from
 
 ## Development steps
 
+Latest backend stage: year-specific user-configured tax reports. Added private
+append-only settings revisions, explicit source/settings selection, signed losses,
+zero taxes on losses, separate final-rounded taxes, immutable JSON/CSV and
+current-source/settings comparison. Dividends are explicitly deferred; only the
+rate is stored. Existing portfolio/annual drafts remain unchanged.
+Requires `20261004144649_AddConfiguredTaxReports`; no user DB migration was run.
+Tooling/locked restore and Release build passed (zero warnings/errors), all
+348 tests passed (126 unit, 222 PostgreSQL integration, none skipped), and EF
+reports no pending model changes. Tests use disposable databases and include
+year isolation, access/CSRF, losses, rounding, sample regression, snapshot retention
+and protected migration downgrade. All 35 changed source/document files use LF,
+104 checked local documentation link targets exist, and `git diff --check` passes
+in each repository. Only API source/tests/migrations and project documentation
+changed; no frontend scaffolding, service restart, user DB migration or commit.
+
+Latest shared stage (2026-10-05): frontend foundation in `zi-app-web`. It provides
+a responsive en/uk/ru overview and read-only connection page, routing, npm toolchain,
+same-origin development proxy, local UI primitives and unit/browser/CI checks.
+See the [web handoff](../zi-app-web/docs/frontend-foundation.md) for verification
+and limits. It does not implement authentication UI or investment screens.
+The backend 348-test result above was not rerun for this documentation-only update.
+
 Continue with the first unchecked step when asked to run the next step. Complete
 one stage with relevant tests and a documented acceptance check before moving on.
 
@@ -256,7 +306,7 @@ one stage with relevant tests and a documented acceptance check before moving on
    versioned inputs/results, prior-year FIFO consumption, CSV/JSON exports,
    spreadsheet reconciliation, full decimal storage and current-input comparison.
    No filing rounding or taxes payable; all reports remain explicitly drafts.
-6. [ ] Filing-readiness work, split into bounded stages:
+6. [x] Reporting preparation and configurable tax calculations, in bounded stages:
    - [x] Research baseline and scope decisions for 2025. See the
      [review and next-stage brief](docs/reports/ua-2025-filing-readiness.md).
      This does not mean legal validation is complete.
@@ -265,23 +315,38 @@ one stage with relevant tests and a documented acceptance check before moving on
      JSON exports and separate current-source status. Owner/admin isolation, CSRF,
      integrity, precision, source corrections and migration preservation are tested.
      See the [annual contract](docs/reports/annual-preparation-drafts.md).
-   - [ ] **Next stage: close the documented 2025 legal/FX/fee/FIFO/loss/rounding/form review gates**
-     and obtain explicit user confirmation before implementing official calculations.
-     Then implement separately versioned policy/form support with reviewed fixtures.
-     Do not change readiness or historical drafts from spreadsheet agreement alone.
-7. [ ] Performance/statistics and S&P 500 comparison: define cash-flow and
+   - [x] User-configured tax reports for a chosen year, with settings revisions,
+     preserved negative losses, zero taxes on loss years, final-rounded tax amounts
+     and saved exports. See the [configured-report contract](docs/reports/configured-tax-reports.md).
+     The user's clarification supersedes the specialist-review blocker; do not
+     repeat that review instead of advancing the product.
+7. [x] Frontend foundation in `zi-app-web`: React/TypeScript/Vite, pinned npm,
+   routing, Radix/Tailwind primitive, en/uk/ru, API proxy at port 5050, environment
+   example, typecheck/lint/build/UI/browser tests and CI. No production deployment.
+8. [ ] **Next shared stage: authentication UI in `zi-app-web`.** Follow its
+   step 2: login, session restoration, logout, protected navigation and super-admin
+   provisioning, with localized loading/error/expired/forbidden states. Test real
+   API cookies/CSRF through the proxy using explicitly designated test data.
+   Subsequent bounded web stages are portfolios, trades, holdings and report/settings
+   screens in the web guide's order. Do not skip directly to statistics or redo
+   foundation/tax research. Change API code only if a verified contract gap requires it.
+9. [ ] Performance/statistics and S&P 500 comparison: define cash-flow and
    dividend treatment, price data source/licensing, valuation dates, currency,
    and price-return versus total-return benchmark methodology before implementing.
-8. [ ] Later product workflows: broker imports, dividends/withholding, deposits,
+10. [ ] Later product workflows: broker imports, dividends/withholding, deposits,
    withdrawals, transfers preserving original lots, audited trade cancellation,
    and account recovery/lifecycle.
    Refine their priority when needed by reporting or performance work.
-9. [ ] Production readiness with infra/web: persistent Data Protection keys,
+11. [ ] Production readiness with infra/web: persistent Data Protection keys,
    operational logging, authentication abuse controls, migration/deployment
    procedure, backups/restore, and an end-to-end acceptance test.
+12. [ ] Optional official filing support, only when requested: close the documented
+    legal/form gates and implement a separately versioned statutory policy/form
+    with reviewed fixtures. Do not relabel user-configured reports as official.
 
-Coordinate frontend foundation and login with the web repository; they can proceed
-using the existing auth endpoints before all investment APIs are complete.
+Continue login/account access with the web repository using the existing auth
+endpoints. The foundation's test cookie/header proxy checks are not proof of
+real Identity/CSRF behavior; that acceptance gate remains in the next UI stage.
 
 ## Verification and migrations
 
@@ -304,13 +369,15 @@ Migrations live in `src/ZiApp.Infrastructure/Persistence/Migrations`.
 The current chain is `InitialFoundation`, `InitialInvestmentLedger`,
 `AddIdentityAuthentication`, `AddManualTradeEntry`, `AddNbuExchangeRates`, then
 `20261002125349_AddSplitManagement`, then `20261002140835_AddDraftTaxReports`,
-then `20261003152645_AddAnnualPreparationDrafts`.
+then `20261003152645_AddAnnualPreparationDrafts`, then
+`20261004144649_AddConfiguredTaxReports`.
 The model snapshot is not another migration. These upgrades preserve existing data.
 Manual-trade downgrade blocks loss of pending rates/correction history; NBU downgrade
 blocks loss of response provenance/resolution history; split downgrade blocks loss
 of split provenance/correction history. Draft-report downgrade refuses to erase
 saved snapshots or coerce calculated matches back to numeric(28,12) with data loss.
 Annual-preparation downgrade refuses to erase any saved annual snapshot.
+Configured-tax downgrade refuses to erase settings revisions or configured reports.
 Use forward migrations and a controlled schema window, backing up the confirmed target.
 Drain older API
 writers before running the split stage: all quantity writers must use its new lock.
